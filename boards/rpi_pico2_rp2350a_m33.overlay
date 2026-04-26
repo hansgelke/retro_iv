@@ -1,0 +1,22 @@
+
+&i2c0 {
+    status = "okay";
+    pinctrl-0 = <&i2c1_default>;
+    pinctrl-names = "default";
+    clock-frequency = <I2C_BITRATE_STANDARD>;
+
+    my_peripheral: my_peripheral@20 {
+        compatible = "vnd,my-peripheral"; 
+        reg = <0x20>;                     /* 7-bit slave address */
+    };
+};
+
+&pinctrl {
+    i2c1_default: i2c1_default{
+        group1 {
+            pinmux = <I2C0_SDA_P16>, <I2C0_SCL_P17>;
+            input-enable;
+            input-schmitt-enable;
+        };
+    };
+};
