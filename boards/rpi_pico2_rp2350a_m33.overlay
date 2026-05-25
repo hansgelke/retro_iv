@@ -1,22 +1,66 @@
 
-&i2c0 {
+#include <dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+
+&i2c1 {
     status = "okay";
     pinctrl-0 = <&i2c1_default>;
     pinctrl-names = "default";
     clock-frequency = <I2C_BITRATE_STANDARD>;
 
-    my_peripheral: my_peripheral@20 {
+    my_peripheral_23: my_peripheral_23@23 {
+        compatible = "vnd,my-peripheral";
+        reg = <0x23>;                     /* 7-bit slave address */
+    };
+
+    my_peripheral_20: my_peripheral_20@20 {
+        compatible = "vnd,my-peripheral";
+        reg = <0x20>;
+    };
+
+    my_peripheral_21: my_peripheral_1@21 {
         compatible = "vnd,my-peripheral"; 
-        reg = <0x20>;                     /* 7-bit slave address */
+        reg = <0x21>;                     /* 7-bit slave address */
+    };
+};
+
+&i2c0 {
+    status = "okay";
+    pinctrl-0 = <&i2c0_default>;
+    pinctrl-names = "default";
+    clock-frequency = <I2C_BITRATE_STANDARD>;
+};
+&pinctrl {
+    i2c0_default: i2c0_default{
+        group1 {
+            pinmux = <I2C0_SDA_P20>, <I2C0_SCL_P21>;
+            input-enable;
+            input-schmitt-enable;
+        };
     };
 };
 
 &pinctrl {
     i2c1_default: i2c1_default{
         group1 {
-            pinmux = <I2C0_SDA_P16>, <I2C0_SCL_P17>;
+            pinmux = <I2C1_SDA_P10>, <I2C1_SCL_P11>;
             input-enable;
             input-schmitt-enable;
         };
+    };
+};
+
+
+/ {
+    gpios {
+        compatible = "gpio-leds";
+        rst_n: rstn {
+            gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
+            label = "User LED";
+        };
+    };
+
+    aliases {
+        rstn = &rst_n;
     };
 };
