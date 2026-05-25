@@ -96,5 +96,15 @@ if (ret == 0) {
             PERIPH_ADDR_20, rx_buf[1], rx_buf[0]);
 }
 
-return 0;
+    int ret4 = set_slic(i2c_bus0,
+                PERIPH_ADDR_20, //Is the subscriber number
+                rx_buf,
+                sizeof(rx_buf));
+    if (ret4 == 0)
+    {
+        LOG_INF("SLIC OK  -> slave 0x%02x, "
+                "data: 0x%02x 0x%02x",
+                PERIPH_ADDR_20, rx_buf[1], rx_buf[0]);
+    }
+return 0; // Return from main.c
 }

@@ -30,6 +30,12 @@ int i2c_read_register(const struct device *bus,
                               uint8_t reg_addr,
                               uint8_t *data,
                               size_t len);
+int init_gpios(void);
+
+int set_slic(const struct device *bus,
+                    uint8_t dev_addr, //Is the subscriber number
+                    uint8_t *mode,  //Is the mode to be set
+                    size_t len);
 
 
 
