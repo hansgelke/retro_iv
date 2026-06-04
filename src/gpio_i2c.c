@@ -75,23 +75,40 @@ int i2c_read_register(const struct device* bus,
 
 int init_gpios(void);
 
+
+/* ----------------------------------------------------------------
+* Function Sets Mode Register in SLIC
+    * -------------------------------------------------------------*/
+
 int set_slic(const struct device* bus,
              uint8_t dev_addr, //Is the subscriber number
-             uint8_t* mode, //Is the mode to be set
-             size_t len)
+             uint8_t reg_addr,
+             uint8_t mode,
+             uint8_t mask)
 {
-    uint8_t reg_addr = 0x12; //MCP23017 GPIOA Register address
-    uint8_t* data = 0x0;
+
+    uint8_t byte[2] = {0x0};
     int ret = i2c_write_read(bus,
                              dev_addr,
                              &reg_addr, sizeof(reg_addr), /* write phase */
-                             data, len); /* read phase  */
+                             byte, sizeof(byte)); /* read phase  */
     if (ret < 0)
     {
         LOG_ERR("SLIC read failed (addr=0x%02x reg=0x%02x): %d (%s)",
                 dev_addr, reg_addr, ret, strerror(-ret));
     }
 
-    //(byte & ~mask) | (mode & mask);
+    uint8_t buf[2];
+    uint8_t results =0x0;
+
+    buf[0] = reg_addr;
+    results = (byte[0] & ~mask) | (mode & mask);
+    buf[1] = results;
+
+    LOG_INF("byte: 0x%x, mask: 0x%x, mode: 0x%x, results: 0x%x", byte[0], mask, mode, results);
+
+     ret = i2c_write(bus, buf, sizeof(buf), dev_addr);
+
+
     return ret;
 }
