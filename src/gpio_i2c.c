@@ -1,11 +1,8 @@
-#include <zephyr/kernel.h>
-#include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/logging/log.h>
-#include <string.h>
-#include <zephyr/sys/util.h>
-#include <errno.h>
+//#include <zephyr/sys/util.h>
+//#include <errno.h>
 #include "gpio_i2c.h"
 
 #define RST_N_PIN     6
@@ -105,7 +102,7 @@ int set_slic(const struct device* bus,
     results = (byte[0] & ~mask) | (mode & mask);
     buf[1] = results;
 
-    LOG_INF("byte: 0x%x, mask: 0x%x, mode: 0x%x, results: 0x%x", byte[0], mask, mode, results);
+    //LOG_INF("byte: 0x%x, mask: 0x%x, mode: 0x%x, results: 0x%x", byte[0], mask, mode, results);
 
      ret = i2c_write(bus, buf, sizeof(buf), dev_addr);
 

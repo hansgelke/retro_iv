@@ -5,10 +5,6 @@
 #ifndef SRC_GPIO_I2C_H
 #define SRC_GPIO_I2C_H
 
-
-#include <zephyr/device.h>
-#include <stdint.h>
-#include <stddef.h>
 #define slic_lpsb (0x00)
 #define slic_fora (0x10)
 #define slic_urng (0x20)

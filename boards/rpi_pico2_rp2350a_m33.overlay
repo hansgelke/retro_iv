@@ -50,6 +50,29 @@
     };
 };
 
+&pinctrl {
+    spi0_default: spi0_default {
+        group1 {
+            pinmux = <SPI0_SCK_P18>,
+                     <SPI0_TX_P19>,
+                     <SPI0_RX_P16>;
+        };
+    };
+};
+
+&spi0 {
+    status        = "okay";
+    pinctrl-0     = <&spi0_default>;
+    pinctrl-names = "default";
+    cs-gpios      = <&gpio0 17 GPIO_ACTIVE_LOW>;
+
+    spi_dev0: spi_dev0@0 {
+        compatible        = "vnd,spi-device";
+        reg               = <0>;
+        spi-max-frequency = <4000000>;
+        label             = "SPI_DEV0";
+    };
+};
 
 / {
     gpios {

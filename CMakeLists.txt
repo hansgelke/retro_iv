@@ -6,4 +6,10 @@ set(DTC_OVERLAY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/boards/rpi_pico2_rp2350a_m33.ov
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(generic_i2c)
 
-target_sources(app PRIVATE src/main.c src/gpio_i2c.c src/gpio_i2c.h)
+target_sources(app PRIVATE 
+src/main.c 
+src/gpio_i2c.c 
+src/gpio_i2c.h
+src/spio.c
+src/spio.h
+)
