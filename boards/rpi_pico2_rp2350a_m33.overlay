@@ -1,6 +1,33 @@
 
 #include <dt-bindings/gpio/gpio.h>
-#include <zephyr/dt-bindings/input/input-event-codes.h>
+
+&pinctrl {
+    i2c0_default: i2c0_default {
+        group1 {
+            pinmux = <I2C0_SDA_P20>, <I2C0_SCL_P21>;
+            input-enable;
+            input-schmitt-enable;
+        };
+    };
+
+    i2c1_default: i2c1_default {
+        group1 {
+            pinmux = <I2C1_SDA_P10>, <I2C1_SCL_P11>;
+            input-enable;
+            input-schmitt-enable;
+        };
+    };
+
+    spi0_default: spi0_default {
+        group1 {                          /* outputs */
+        pinmux = <SPI0_SCK_P18>, <SPI0_TX_P19>;
+        };
+        group2 {                          /* input */
+        pinmux = <SPI0_RX_P16>;
+            input-enable;
+        };
+    };
+};
 
 &i2c1 {
     status = "okay";
@@ -8,18 +35,18 @@
     pinctrl-names = "default";
     clock-frequency = <I2C_BITRATE_STANDARD>;
 
-    my_peripheral_23: my_peripheral_23@23 {
-        compatible = "vnd,my-peripheral";
+    i2c1_peripheral_23: i2c1_peripheral_23@23 {
+        compatible = "vnd,mcp23017";
         reg = <0x23>;                     /* 7-bit slave address */
     };
 
-    my_peripheral_20: my_peripheral_20@20 {
-        compatible = "vnd,my-peripheral";
+    i2c1_peripheral_20: i2c1_peripheral_20@20 {
+        compatible = "vnd,mcp23017";
         reg = <0x20>;
     };
 
-    my_peripheral_21: my_peripheral_1@21 {
-        compatible = "vnd,my-peripheral"; 
+    i2c1_peripheral_21: i2c1_peripheral_21@21 {
+        compatible = "vnd,mcp23017";
         reg = <0x21>;                     /* 7-bit slave address */
     };
 };
@@ -29,36 +56,30 @@
     pinctrl-0 = <&i2c0_default>;
     pinctrl-names = "default";
     clock-frequency = <I2C_BITRATE_STANDARD>;
-};
-&pinctrl {
-    i2c0_default: i2c0_default{
-        group1 {
-            pinmux = <I2C0_SDA_P20>, <I2C0_SCL_P21>;
-            input-enable;
-            input-schmitt-enable;
-        };
+
+    i2c0_peripheral_20: i2c0_peripheral_20@20 {
+        compatible = "vnd,mcp23017";
+        reg = <0x20>;
     };
+
+    i2c0_peripheral_21: i2c0_peripheral_21@21 {
+        compatible = "vnd,mcp23017";
+        reg = <0x21>;                     /* 7-bit slave address */
+    };
+
+    i2c0_peripheral_23: i2c0_peripheral_23@23 {
+        compatible = "vnd,mcp23017";
+        reg = <0x23>;                     /* 7-bit slave address */
+    };
+
+    i2c0_peripheral_24: i2c0_peripheral_24@24 {
+        compatible = "vnd,mcp23017";
+        reg = <0x24>;                     /* 7-bit slave address */
+    };
+
+
 };
 
-&pinctrl {
-    i2c1_default: i2c1_default{
-        group1 {
-            pinmux = <I2C1_SDA_P10>, <I2C1_SCL_P11>;
-            input-enable;
-            input-schmitt-enable;
-        };
-    };
-};
-
-&pinctrl {
-    spi0_default: spi0_default {
-        group1 {
-            pinmux = <SPI0_SCK_P18>,
-                     <SPI0_TX_P19>,
-                     <SPI0_RX_P16>;
-        };
-    };
-};
 
 &spi0 {
     status        = "okay";
@@ -70,7 +91,6 @@
         compatible        = "vnd,spi-device";
         reg               = <0>;
         spi-max-frequency = <4000000>;
-        label             = "SPI_DEV0";
     };
 };
 
@@ -79,7 +99,6 @@
         compatible = "gpio-leds";
         rst_n: rstn {
             gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;
-            label = "User LED";
         };
     };
 

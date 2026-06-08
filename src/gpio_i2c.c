@@ -5,6 +5,10 @@
 //#include <errno.h>
 #include "gpio_i2c.h"
 
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+
 #define RST_N_PIN     6
 
 #define GPIO_NODE DT_NODELABEL(gpio0)

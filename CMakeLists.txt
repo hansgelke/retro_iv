@@ -2,6 +2,7 @@
 
 cmake_minimum_required(VERSION 3.20.0)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(DTC_OVERLAY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/boards/rpi_pico2_rp2350a_m33.overlay)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(generic_i2c)
