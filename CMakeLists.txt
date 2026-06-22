@@ -13,4 +13,10 @@ src/gpio_i2c.c
 src/gpio_i2c.h
 src/spio.c
 src/spio.h
+src/tones.c
+src/tones.h
+src/main_fsm.c
+src/main_fsm.h
+        src/slic.c
+        src/slic.h
 )

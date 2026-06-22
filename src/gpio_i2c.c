@@ -74,8 +74,6 @@ int i2c_read_register(const struct device* bus,
     return ret;
 }
 
-int init_gpios(void);
-
 
 /* ----------------------------------------------------------------
 * Function Sets Mode Register in SLIC
