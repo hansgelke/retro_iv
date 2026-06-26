@@ -47,7 +47,7 @@ int init_slic(void)
 
 
         /* Initialization Values of GPIODIR and GPIO Registers */
-        const uint8_t iodira[] = {0x00}; //Direction of pins 0: out, 1= In
+        const uint8_t iodira[] = {0x00}; //Direction of pins 0=out, 1=in
         const uint8_t iodirb[] = {0xc0};
         const uint8_t gpioa[] = {0x08}; //Set SLIC to power savings, disable mux
         const uint8_t gpiob[] = {0x08};
@@ -212,7 +212,7 @@ int init_slic(void)
         // ----------------------------------------------------------------
         // Sets E0 Bit in SLIC 20*/
         //----------------------------------------------------------------
-        mode = 0x00;
+        mode = 0x80;
         mask = 0x80;
         set_slic(i2c_bus0,
                  PERIPH_ADDR_20, //Is the subscriber number
@@ -224,7 +224,7 @@ int init_slic(void)
         // ----------------------------------------------------------------
         // Sets E0 Bit in SLIC 21*/
         //----------------------------------------------------------------
-        mode = 0x00;
+        mode = 0x80;
         mask = 0x80;
         set_slic(i2c_bus0,
                  PERIPH_ADDR_21, //Is the subscriber number

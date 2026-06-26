@@ -102,7 +102,44 @@
         };
     };
 
+
+    dled_0 {
+        compatible = "gpio-leds";
+        dled0: dled_0 {
+            gpios = <&gpio0 14 GPIO_ACTIVE_HIGH>;
+        };
+    };
+
+    dled_1 {
+        compatible = "gpio-leds";
+        dled1: dled_1 {
+            gpios = <&gpio0 25 GPIO_ACTIVE_HIGH>;
+        };
+    };
+
+
+
+    button_0 {
+        compatible = "gpio-keys";
+        button0: button_0 {
+            gpios = <&gpio0 3 (GPIO_ACTIVE_LOW)>;
+        };
+    };
+
+    button_1 {
+        compatible = "gpio-keys";
+        button1: button_1 {
+            gpios = <&gpio0 22 (GPIO_ACTIVE_LOW)>;
+        };
+    };
+
+
+
     aliases {
         rstn = &rst_n;
+        sw0 = &button0;
+        sw1 = &button1;
+        led0 = &dled0;
+        led1 = &dled1;
     };
 };
