@@ -95,7 +95,7 @@
 };
 
 / {
-    gpios {
+    hooksw {
         compatible = "gpio-leds";
         rst_n: rstn {
             gpios = <&gpio0 6 GPIO_ACTIVE_HIGH>;

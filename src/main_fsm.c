@@ -4,6 +4,7 @@
 
 #include "main_fsm.h"
 #include <zephyr/kernel.h>
+#include <string.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/smf.h>
 #include "main.h"
@@ -19,119 +20,367 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 /* ------------------------------------------------------------------ */
 
 static const struct smf_state fsm_states[];
-enum fsm_state_id { S0, S1 };
+enum fsm_state_id { S0, S1, S2, S3, S4, S5, S6, S7, S8 };
 
 /* ------------------------------------------------------------------ */
-/* State S0 — LED off                                                  */
+/* pulse_timer expiry callback                                         */
+/* Runs in ISR context — posts EVENT_PULSE_EXPIRED                     */
+/* ------------------------------------------------------------------ */
+
+static void pulse_timer_expired(struct k_timer *timer)
+{
+    struct fsm_instance *inst =
+        CONTAINER_OF(timer, struct fsm_instance, pulse_timer);
+
+    inst->pulse_expired = true;
+    k_event_post(&inst->event, EVENT_PULSE_EXPIRED);
+}
+
+/* ------------------------------------------------------------------ */
+/* hang_up_timer expiry callback                                       */
+/* Runs in ISR context — posts EVENT_HANGUP_EXPIRED                    */
+/* ------------------------------------------------------------------ */
+
+static void hang_up_timer_expired(struct k_timer *timer)
+{
+    struct fsm_instance *inst =
+        CONTAINER_OF(timer, struct fsm_instance, hang_up_timer);
+
+    k_event_post(&inst->event, EVENT_HANGUP_EXPIRED);
+}
+
+/* ------------------------------------------------------------------ */
+/* Helper — print full pulse_queue array contents to console          */
+/* Called after every new entry is written                            */
+/* ------------------------------------------------------------------ */
+
+static void log_pulse_queue(struct fsm_instance *inst)
+{
+    char buf[PULSE_QUEUE_SIZE * 5 + 4];  /* enough for "NNN, " * N   */
+    int  pos = 0;
+
+    pos += snprintk(buf + pos, sizeof(buf) - pos, "[ ");
+    for (uint8_t i = 0; i < inst->pulse_queue_idx; i++) {
+        if (i < inst->pulse_queue_idx - 1) {
+            pos += snprintk(buf + pos, sizeof(buf) - pos,
+                            "%u, ", inst->pulse_queue[i]);
+        } else {
+            pos += snprintk(buf + pos, sizeof(buf) - pos,
+                            "%u", inst->pulse_queue[i]);
+        }
+    }
+    snprintk(buf + pos, sizeof(buf) - pos, " ]");
+
+    LOG_INF("FSM %p pulse_queue(%u): %s",
+            (void *)inst, inst->pulse_queue_idx, buf);
+}
+
+/* ------------------------------------------------------------------ */
+/* State S0 — idle, wait for BTN_ACTIVE                               */
 /* ------------------------------------------------------------------ */
 
 static void s0_entry(void *o)
 {
-        struct fsm_instance *inst = o;
-        LOG_INF("FSM %p -> S0 (LED off)", (void *)inst);
-        gpio_pin_set_dt(&inst->led, 0);
+    struct fsm_instance *inst = o;
+    LOG_INF("FSM %p -> S0 (idle, LED off)", (void *)inst);
+    gpio_pin_set_dt(&inst->led, 0);
+
+    /* Ensure both timers are stopped when returning to idle          */
+    k_timer_stop(&inst->pulse_timer);
+    k_timer_stop(&inst->hang_up_timer);
+    inst->pulse_expired = false;
+
+    /* Clear pulse queue — fresh start                                */
+    memset(inst->pulse_queue, 0, sizeof(inst->pulse_queue));
+    inst->pulse_queue_idx = 0;
 }
 
 static enum smf_state_result s0_run(void *o)
 {
-        struct fsm_instance *inst = o;
-        if (inst->events & EVENT_BTN_PRESS) {
-                smf_set_state(SMF_CTX(inst), &fsm_states[S1]);
-        }
-        return SMF_EVENT_HANDLED;
+    struct fsm_instance *inst = o;
+    if (inst->events & EVENT_BTN_ACTIVE) {
+        smf_set_state(SMF_CTX(inst), &fsm_states[S1]);
+    }
+    return SMF_EVENT_HANDLED;
 }
+
 /* ------------------------------------------------------------------ */
-/* State S1 — LED on                                                   */
+/* State S1 — loop closed, wait for BTN_INACTIVE                      */
 /* ------------------------------------------------------------------ */
 
 static void s1_entry(void *o)
 {
-        struct fsm_instance *inst = o;
-        LOG_INF("FSM %p -> S1 (LED on)", (void *)inst);
-        gpio_pin_set_dt(&inst->led, 1);
+    struct fsm_instance *inst = o;
+    LOG_INF("FSM %p -> S1 (LED on)", (void *)inst);
+    gpio_pin_set_dt(&inst->led, 1);
+
+    /* Stop pulse timer and clear flag when entering S1               */
+    k_timer_stop(&inst->pulse_timer);
+    inst->pulse_expired = false;
+
+    /* Reset pulse counter for the new digit in this sequence         */
+    inst->pulse_count     = 0;
 }
 
 static enum smf_state_result s1_run(void *o)
 {
-        struct fsm_instance *inst = o;
-        if (inst->events & EVENT_BTN_PRESS) {
-                smf_set_state(SMF_CTX(inst), &fsm_states[S0]);
-        }
-        return SMF_EVENT_HANDLED;
+    struct fsm_instance *inst = o;
+    if (inst->events & EVENT_BTN_INACTIVE) {
+        smf_set_state(SMF_CTX(inst), &fsm_states[S2]);
+    }
+    return SMF_EVENT_HANDLED;
 }
 
+/* ------------------------------------------------------------------ */
+/* State S2 — loop open, hang_up_timer running                        */
+/*                                                                     */
+/* Entered from S1 (first open) or S3 (inter-pulse open).             */
+/* hang_up_timer starts on every entry.                                */
+/*   BTN_ACTIVE before 80 ms  → S3 (pulse), stop hang_up_timer        */
+/*   hang_up_timer expires     → S0 (hang up)                         */
+/* ------------------------------------------------------------------ */
 
+static void s2_entry(void *o)
+{
+    struct fsm_instance *inst = o;
+    LOG_INF("FSM %p -> S2 (hang_up_timer started)", (void *)inst);
+
+    inst->pulse_expired = false;
+
+    /* Start hang_up_timer — one-shot, 80 ms                          */
+    k_timer_start(&inst->hang_up_timer,
+                  K_MSEC(HANGUP_TIMER_MS),
+                  K_NO_WAIT);
+}
+
+static enum smf_state_result s2_run(void *o)
+{
+    struct fsm_instance *inst = o;
+
+    /* Hang-up takes priority over a button event                     */
+    if (inst->events & EVENT_HANGUP_EXPIRED) {
+        LOG_INF("FSM %p: hang_up_timer expired -> S0 (hang up)", (void *)inst);
+        smf_set_state(SMF_CTX(inst), &fsm_states[S0]);
+        return SMF_EVENT_HANDLED;
+    }
+
+    if (inst->events & EVENT_BTN_ACTIVE) {
+        /* Loop closed within 80 ms — valid pulse start               */
+        k_timer_stop(&inst->hang_up_timer);
+        smf_set_state(SMF_CTX(inst), &fsm_states[S3]);
+    }
+
+    return SMF_EVENT_HANDLED;
+}
+
+static void s2_exit(void *o)
+{
+    struct fsm_instance *inst = o;
+    /* Safety stop — timer is already stopped on BTN_ACTIVE path,     */
+    /* but this ensures it is always stopped when leaving S2          */
+    k_timer_stop(&inst->hang_up_timer);
+}
+
+/* ------------------------------------------------------------------ */
+/* State S3 — pulse active, pulse_timer counting down                  */
+/*   BTN_INACTIVE + pulse not expired → S2                            */
+/*   BTN_INACTIVE + pulse expired     → S1                            */
+/*   EVENT_PULSE_EXPIRED              → S1                            */
+/* ------------------------------------------------------------------ */
+
+static void s3_entry(void *o)
+{
+    struct fsm_instance *inst = o;
+    inst->pulse_count++;
+    LOG_INF("FSM %p -> S3 (pulse %u, timer running)", (void *)inst, inst->pulse_count);
+
+    /* Start one-shot pulse countdown                                  */
+    k_timer_start(&inst->pulse_timer,
+                  K_MSEC(PULSE_TIMER_MS),
+                  K_NO_WAIT);
+}
+
+static enum smf_state_result s3_run(void *o)
+{
+    struct fsm_instance *inst = o;
+
+    /* Pulse timer expiry takes priority                               */
+    if (inst->events & EVENT_PULSE_EXPIRED) {
+        /* Append pulse_count to queue if space remains               */
+        if (inst->pulse_queue_idx < PULSE_QUEUE_SIZE) {
+            inst->pulse_queue[inst->pulse_queue_idx] = inst->pulse_count;
+            inst->pulse_queue_idx++;
+        } else {
+            LOG_WRN("FSM %p: pulse_queue full (%u entries), entry dropped",
+                    (void *)inst, PULSE_QUEUE_SIZE);
+        }
+        log_pulse_queue(inst);
+        smf_set_state(SMF_CTX(inst), &fsm_states[S1]);
+        return SMF_EVENT_HANDLED;
+    }
+
+    if (inst->events & EVENT_BTN_INACTIVE) {
+        if (!inst->pulse_expired) {
+            LOG_INF("FSM %p: pulse end, timer active -> S2", (void *)inst);
+            smf_set_state(SMF_CTX(inst), &fsm_states[S2]);
+        } else {
+            LOG_INF("FSM %p: pulse end, timer already expired -> S1", (void *)inst);
+            smf_set_state(SMF_CTX(inst), &fsm_states[S1]);
+        }
+    }
+
+    return SMF_EVENT_HANDLED;
+}
+
+static void s3_exit(void *o)
+{
+    struct fsm_instance *inst = o;
+    /* Stop pulse timer whenever leaving S3                           */
+    k_timer_stop(&inst->pulse_timer);
+}
+
+/* ------------------------------------------------------------------ */
+/* S4–S8 — placeholders, expand as needed                             */
+/* ------------------------------------------------------------------ */
+
+static void s4_entry(void *o) { struct fsm_instance *inst = o; LOG_INF("FSM %p -> S4", (void *)inst); }
+static enum smf_state_result s4_run(void *o)
+{
+    struct fsm_instance *inst = o;
+    if (inst->events & EVENT_BTN_ACTIVE) {
+        smf_set_state(SMF_CTX(inst), &fsm_states[S5]);
+    }
+    return SMF_EVENT_HANDLED;
+}
+
+static void s5_entry(void *o) { struct fsm_instance *inst = o; LOG_INF("FSM %p -> S5", (void *)inst); }
+static enum smf_state_result s5_run(void *o)
+{
+    struct fsm_instance *inst = o;
+    if (inst->events & EVENT_BTN_INACTIVE) {
+        smf_set_state(SMF_CTX(inst), &fsm_states[S6]);
+    }
+    return SMF_EVENT_HANDLED;
+}
+
+static void s6_entry(void *o) { struct fsm_instance *inst = o; LOG_INF("FSM %p -> S6", (void *)inst); }
+static enum smf_state_result s6_run(void *o)
+{
+    struct fsm_instance *inst = o;
+    if (inst->events & EVENT_BTN_ACTIVE) {
+        smf_set_state(SMF_CTX(inst), &fsm_states[S7]);
+    }
+    return SMF_EVENT_HANDLED;
+}
+
+static void s7_entry(void *o) { struct fsm_instance *inst = o; LOG_INF("FSM %p -> S7", (void *)inst); }
+static enum smf_state_result s7_run(void *o)
+{
+    struct fsm_instance *inst = o;
+    if (inst->events & EVENT_BTN_INACTIVE) {
+        smf_set_state(SMF_CTX(inst), &fsm_states[S8]);
+    }
+    return SMF_EVENT_HANDLED;
+}
+
+static void s8_entry(void *o) { struct fsm_instance *inst = o; LOG_INF("FSM %p -> S8", (void *)inst); }
+static enum smf_state_result s8_run(void *o)
+{
+    struct fsm_instance *inst = o;
+    if (inst->events & EVENT_BTN_INACTIVE) {
+        smf_set_state(SMF_CTX(inst), &fsm_states[S0]);
+    }
+    return SMF_EVENT_HANDLED;
+}
 
 /* ------------------------------------------------------------------ */
 /* Shared state table                                                  */
 /* ------------------------------------------------------------------ */
 
 static const struct smf_state fsm_states[] = {
-        [S0] = SMF_CREATE_STATE(s0_entry, s0_run, NULL, NULL, NULL),
-        [S1] = SMF_CREATE_STATE(s1_entry, s1_run, NULL, NULL, NULL),
-    };
+    [S0] = SMF_CREATE_STATE(s0_entry, s0_run, NULL,     NULL, NULL),
+    [S1] = SMF_CREATE_STATE(s1_entry, s1_run, NULL,     NULL, NULL),
+    [S2] = SMF_CREATE_STATE(s2_entry, s2_run, s2_exit,  NULL, NULL),
+    [S3] = SMF_CREATE_STATE(s3_entry, s3_run, s3_exit,  NULL, NULL),
+    [S4] = SMF_CREATE_STATE(s4_entry, s4_run, NULL,     NULL, NULL),
+    [S5] = SMF_CREATE_STATE(s5_entry, s5_run, NULL,     NULL, NULL),
+    [S6] = SMF_CREATE_STATE(s6_entry, s6_run, NULL,     NULL, NULL),
+    [S7] = SMF_CREATE_STATE(s7_entry, s7_run, NULL,     NULL, NULL),
+    [S8] = SMF_CREATE_STATE(s8_entry, s8_run, NULL,     NULL, NULL),
+};
 
 /* ------------------------------------------------------------------ */
 /* ISR — one function serves all instances via CONTAINER_OF            */
 /* ------------------------------------------------------------------ */
 
 static void button_pressed(const struct device *dev,
-                            struct gpio_callback *cb, uint32_t pins)
+                            struct gpio_callback *cb,
+                            uint32_t pins)
 {
-        struct fsm_instance *inst =
-            CONTAINER_OF(cb, struct fsm_instance, button_cb);
-        k_event_post(&inst->event, EVENT_BTN_PRESS);
+    struct fsm_instance *inst =
+        CONTAINER_OF(cb, struct fsm_instance, button_cb);
+
+    int level = gpio_pin_get_dt(&inst->button);
+
+    if (level == 1) {
+        k_event_post(&inst->event, EVENT_BTN_ACTIVE);
+    } else {
+        k_event_post(&inst->event, EVENT_BTN_INACTIVE);
+    }
 }
+
 /* ------------------------------------------------------------------ */
 /* Public API                                                          */
 /* ------------------------------------------------------------------ */
 
 int fsm_init(struct fsm_instance *inst)
 {
-        int ret;
-        /* ------------------------------------------------------------------ */
-        /* Button */
-        /* ------------------------------------------------------------------ */
+    int ret;
 
-        if (!gpio_is_ready_dt(&inst->button)) {
-                LOG_ERR("FSM %p: button not ready", (void *)inst);
-                return -ENODEV;
-        }
-        ret = gpio_pin_configure_dt(&inst->button, GPIO_INPUT);
-        if (ret) return ret;
+    /* Button */
+    if (!gpio_is_ready_dt(&inst->button)) {
+        LOG_ERR("FSM %p: button not ready", (void *)inst);
+        return -ENODEV;
+    }
+    ret = gpio_pin_configure_dt(&inst->button, GPIO_INPUT);
+    if (ret) return ret;
 
-        ret = gpio_pin_interrupt_configure_dt(&inst->button,
-                                              GPIO_INT_EDGE_TO_ACTIVE);
-        if (ret) return ret;
+    ret = gpio_pin_interrupt_configure_dt(&inst->button,
+                                          GPIO_INT_EDGE_BOTH);
+    if (ret) return ret;
 
-        gpio_init_callback(&inst->button_cb, button_pressed,
-                           BIT(inst->button.pin));
-        gpio_add_callback(inst->button.port, &inst->button_cb);
-        /* ------------------------------------------------------------------ */
-        /* LED */
-        /* ------------------------------------------------------------------ */
+    gpio_init_callback(&inst->button_cb, button_pressed,
+                       BIT(inst->button.pin));
+    gpio_add_callback(inst->button.port, &inst->button_cb);
 
-        if (!gpio_is_ready_dt(&inst->led)) {
-                LOG_ERR("FSM %p: LED not ready", (void *)inst);
-                return -ENODEV;
-        }
-        ret = gpio_pin_configure_dt(&inst->led, GPIO_OUTPUT_INACTIVE);
-        if (ret) return ret;
+    /* LED */
+    if (!gpio_is_ready_dt(&inst->led)) {
+        LOG_ERR("FSM %p: LED not ready", (void *)inst);
+        return -ENODEV;
+    }
+    ret = gpio_pin_configure_dt(&inst->led, GPIO_OUTPUT_INACTIVE);
+    if (ret) return ret;
 
-        /* ------------------------------------------------------------------ */
-        /* SMF */
-        /* ------------------------------------------------------------------ */
-        k_event_init(&inst->event);
-        smf_set_initial(SMF_CTX(inst), &fsm_states[S0]);
+    /* pulse_timer */
+    k_timer_init(&inst->pulse_timer, pulse_timer_expired, NULL);
+    inst->pulse_expired = false;
 
-        return 0;
+    /* hang_up_timer */
+    k_timer_init(&inst->hang_up_timer, hang_up_timer_expired, NULL);
+
+    /* SMF */
+    k_event_init(&inst->event);
+    smf_set_initial(SMF_CTX(inst), &fsm_states[S0]);
+
+    return 0;
 }
+
 int fsm_run(struct fsm_instance *inst)
 {
     int ret;
     while (1) {
         inst->events = k_event_wait(&inst->event,
-                                    EVENT_BTN_PRESS,
+                                    EVENT_ALL,
                                     true, K_FOREVER);
         ret = smf_run_state(SMF_CTX(inst));
         if (ret) {
