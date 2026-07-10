@@ -7,13 +7,20 @@
 #include <string.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/smf.h>
+#include <zephyr/sys/atomic.h>
 #include "main.h"
 #include "tones.h"
 #include "slic.h"
 #include "gpio_i2c.h"
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
+
+/* ------------------------------------------------------------------ */
+/* int_call — defined here, declared extern in main_fsm.h             */
+/* ------------------------------------------------------------------ */
+atomic_t int_call = ATOMIC_INIT(0);
+
 
 /* ------------------------------------------------------------------ */
 /* State table — shared, read-only, lives in flash                     */
@@ -76,13 +83,50 @@ static void log_pulse_queue(struct fsm_instance *inst)
 }
 
 /* ------------------------------------------------------------------ */
+/* Helper — update int_call after each new pulse_queue entry          */
+/*                                                                     */
+/* Condition: pulse_queue[0] == 1 AND pulse_queue_idx >= 2            */
+/* Encoding:  pulse_queue[1] value N → BIT(N-1) ORed into int_call   */
+/* Bits are only SET — clearing is handled by a later mechanism       */
+/* ------------------------------------------------------------------ */
+
+static void update_int_call(struct fsm_instance *inst)
+{
+    /* Condition 1: first digit must be 1                             */
+    if (inst->pulse_queue[0] != 1) {
+        return;
+    }
+
+    /* Condition 2: second digit must exist                           */
+    if (inst->pulse_queue_idx < 2) {
+        return;
+    }
+
+    uint32_t digit = inst->pulse_queue[1];
+
+    /* Guard: valid rotary range is 1–10                              */
+    if (digit == 0 || digit > 10) {
+        LOG_WRN("FSM %p: pulse_queue[1]=%u out of range, int_call not updated",
+                (void *)inst, digit);
+        return;
+    }
+
+    /* One-hot: value N → BIT(N-1), OR into shared register          */
+    atomic_or(&int_call, (atomic_val_t)BIT(digit - 1));
+
+    long val = (long)atomic_get(&int_call);
+    LOG_INF("FSM %p: int_call updated  pulse_queue[1]=%u  int_call=0x%03lx",
+            (void *)inst, digit, val);
+}
+
+/* ------------------------------------------------------------------ */
 /* State S0 — idle, wait for BTN_ACTIVE                               */
 /* ------------------------------------------------------------------ */
 
 static void s0_entry(void *o)
 {
     struct fsm_instance *inst = o;
-    LOG_INF("FSM %p -> S0 (idle, LED off)", (void *)inst);
+    LOG_DBG("FSM %p -> S0 (idle, LED off)", (void *)inst);
     gpio_pin_set_dt(&inst->led, 0);
 
     /* Ensure both timers are stopped when returning to idle          */
@@ -111,7 +155,8 @@ static enum smf_state_result s0_run(void *o)
 static void s1_entry(void *o)
 {
     struct fsm_instance *inst = o;
-    LOG_INF("FSM %p -> S1 (LED on)", (void *)inst);
+    LOG_DBG("FSM %p -> S1 (LED on, digits so far=%u)",
+            (void *)inst, inst->pulse_queue_idx);
     gpio_pin_set_dt(&inst->led, 1);
 
     /* Stop pulse timer and clear flag when entering S1               */
@@ -143,7 +188,7 @@ static enum smf_state_result s1_run(void *o)
 static void s2_entry(void *o)
 {
     struct fsm_instance *inst = o;
-    LOG_INF("FSM %p -> S2 (hang_up_timer started)", (void *)inst);
+    LOG_DBG("FSM %p -> S2 (hang_up_timer started)", (void *)inst);
 
     inst->pulse_expired = false;
 
@@ -159,7 +204,7 @@ static enum smf_state_result s2_run(void *o)
 
     /* Hang-up takes priority over a button event                     */
     if (inst->events & EVENT_HANGUP_EXPIRED) {
-        LOG_INF("FSM %p: hang_up_timer expired -> S0 (hang up)", (void *)inst);
+        LOG_DBG("FSM %p: hang_up_timer expired -> S0 (hang up)", (void *)inst);
         smf_set_state(SMF_CTX(inst), &fsm_states[S0]);
         return SMF_EVENT_HANDLED;
     }
@@ -192,7 +237,7 @@ static void s3_entry(void *o)
 {
     struct fsm_instance *inst = o;
     inst->pulse_count++;
-    LOG_INF("FSM %p -> S3 (pulse %u, timer running)", (void *)inst, inst->pulse_count);
+    LOG_DBG("FSM %p -> S3 (pulse %u, timer running)", (void *)inst, inst->pulse_count);
 
     /* Start one-shot pulse countdown                                  */
     k_timer_start(&inst->pulse_timer,
@@ -215,16 +260,18 @@ static enum smf_state_result s3_run(void *o)
                     (void *)inst, PULSE_QUEUE_SIZE);
         }
         log_pulse_queue(inst);
+        update_int_call(inst);
+
         smf_set_state(SMF_CTX(inst), &fsm_states[S1]);
         return SMF_EVENT_HANDLED;
     }
 
     if (inst->events & EVENT_BTN_INACTIVE) {
         if (!inst->pulse_expired) {
-            LOG_INF("FSM %p: pulse end, timer active -> S2", (void *)inst);
+            LOG_DBG("FSM %p: pulse end, timer active -> S2", (void *)inst);
             smf_set_state(SMF_CTX(inst), &fsm_states[S2]);
         } else {
-            LOG_INF("FSM %p: pulse end, timer already expired -> S1", (void *)inst);
+            LOG_DBG("FSM %p: pulse end, timer already expired -> S1", (void *)inst);
             smf_set_state(SMF_CTX(inst), &fsm_states[S1]);
         }
     }
@@ -243,7 +290,7 @@ static void s3_exit(void *o)
 /* S4–S8 — placeholders, expand as needed                             */
 /* ------------------------------------------------------------------ */
 
-static void s4_entry(void *o) { struct fsm_instance *inst = o; LOG_INF("FSM %p -> S4", (void *)inst); }
+static void s4_entry(void *o) { struct fsm_instance *inst = o; LOG_DBG("FSM %p -> S4", (void *)inst); }
 static enum smf_state_result s4_run(void *o)
 {
     struct fsm_instance *inst = o;
@@ -253,7 +300,7 @@ static enum smf_state_result s4_run(void *o)
     return SMF_EVENT_HANDLED;
 }
 
-static void s5_entry(void *o) { struct fsm_instance *inst = o; LOG_INF("FSM %p -> S5", (void *)inst); }
+static void s5_entry(void *o) { struct fsm_instance *inst = o; LOG_DBG("FSM %p -> S5", (void *)inst); }
 static enum smf_state_result s5_run(void *o)
 {
     struct fsm_instance *inst = o;
@@ -263,7 +310,7 @@ static enum smf_state_result s5_run(void *o)
     return SMF_EVENT_HANDLED;
 }
 
-static void s6_entry(void *o) { struct fsm_instance *inst = o; LOG_INF("FSM %p -> S6", (void *)inst); }
+static void s6_entry(void *o) { struct fsm_instance *inst = o; LOG_DBG("FSM %p -> S6", (void *)inst); }
 static enum smf_state_result s6_run(void *o)
 {
     struct fsm_instance *inst = o;
@@ -273,7 +320,7 @@ static enum smf_state_result s6_run(void *o)
     return SMF_EVENT_HANDLED;
 }
 
-static void s7_entry(void *o) { struct fsm_instance *inst = o; LOG_INF("FSM %p -> S7", (void *)inst); }
+static void s7_entry(void *o) { struct fsm_instance *inst = o; LOG_DBG("FSM %p -> S7", (void *)inst); }
 static enum smf_state_result s7_run(void *o)
 {
     struct fsm_instance *inst = o;
@@ -283,7 +330,7 @@ static enum smf_state_result s7_run(void *o)
     return SMF_EVENT_HANDLED;
 }
 
-static void s8_entry(void *o) { struct fsm_instance *inst = o; LOG_INF("FSM %p -> S8", (void *)inst); }
+static void s8_entry(void *o) { struct fsm_instance *inst = o; LOG_DBG("FSM %p -> S8", (void *)inst); }
 static enum smf_state_result s8_run(void *o)
 {
     struct fsm_instance *inst = o;

@@ -7,6 +7,24 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/smf.h>
 #include <zephyr/kernel.h>
+#include <zephyr/sys/atomic.h>
+
+/* ------------------------------------------------------------------ */
+/* int_call — shared one-hot register (common to fsm1 and fsm2)       */
+/*                                                                     */
+/* Reflects pulse_queue[1] as a one-hot bit, but only when            */
+/* pulse_queue[0] == 1.                                               */
+/*                                                                     */
+/* Encoding: value N → BIT(N-1)                                       */
+/*   1 → 0b00000001   2 → 0b00000010   3 → 0b00000100                */
+/*   4 → 0b00001000   5 → 0b00010000   6 → 0b00100000                */
+/*   7 → 0b01000000   8 → 0b10000000   9 → 0b100000000               */
+/*                                                                     */
+/* fsm1 and fsm2 OR their bits in simultaneously.                     */
+/* Bits are only SET here — clearing is described in later            */
+/* instructions.                                                       */
+/* ------------------------------------------------------------------ */
+extern atomic_t int_call;
 
 /* ------------------------------------------------------------------ */
 /* Events                                                              */
