@@ -15,13 +15,22 @@ LOG_MODULE_DECLARE(main, LOG_LEVEL_DBG);
 /* ------------------------------------------------------------------ */
 
 static struct fsm_instance fsm1 = {
-    .button  = GPIO_DT_SPEC_GET(DT_ALIAS(sw0),  gpios),
-    .led     = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios),
+    .button       = GPIO_DT_SPEC_GET(DT_ALIAS(sw0),  gpios),
+    .engaged_bit  = ENGAGED_FSM1_BIT,
+    .int_call_bit = INT_CALL_FSM1_BIT,
 };
 
 static struct fsm_instance fsm2 = {
-    .button  = GPIO_DT_SPEC_GET(DT_ALIAS(sw1),  gpios),
-    .led     = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios),
+    .button       = GPIO_DT_SPEC_GET(DT_ALIAS(sw1),  gpios),
+    .engaged_bit  = ENGAGED_FSM2_BIT,
+    .int_call_bit = INT_CALL_FSM2_BIT,
+};
+
+/* NOTE: sw2 must be defined in the devicetree overlay               */
+static struct fsm_instance fsm3 = {
+    .button       = GPIO_DT_SPEC_GET(DT_ALIAS(sw2),  gpios),
+    .engaged_bit  = ENGAGED_FSM3_BIT,
+    .int_call_bit = INT_CALL_FSM3_BIT,
 };
 
 /* ------------------------------------------------------------------ */
@@ -31,7 +40,7 @@ static struct fsm_instance fsm2 = {
 #define FSM_STACK_SIZE  1024
 #define FSM_PRIORITY    5
 
-static K_SEM_DEFINE(fsm_ready, 0, 2);
+static K_SEM_DEFINE(fsm_ready, 0, 3);
 
 static void fsm1_thread(void *a, void *b, void *c)
 {
@@ -45,9 +54,17 @@ static void fsm2_thread(void *a, void *b, void *c)
     fsm_run(&fsm2);
 }
 
+static void fsm3_thread(void *a, void *b, void *c)
+{
+    k_sem_take(&fsm_ready, K_FOREVER);
+    fsm_run(&fsm3);
+}
+
 K_THREAD_DEFINE(fsm1_tid, FSM_STACK_SIZE, fsm1_thread,
                 NULL, NULL, NULL, FSM_PRIORITY, 0, 0);
 K_THREAD_DEFINE(fsm2_tid, FSM_STACK_SIZE, fsm2_thread,
+                NULL, NULL, NULL, FSM_PRIORITY, 0, 0);
+K_THREAD_DEFINE(fsm3_tid, FSM_STACK_SIZE, fsm3_thread,
                 NULL, NULL, NULL, FSM_PRIORITY, 0, 0);
 
 /* ------------------------------------------------------------------ */
@@ -68,6 +85,15 @@ int main(void)
     ret = fsm_init(&fsm2);
     if (ret) LOG_ERR("fsm2 init failed: %d", ret);
 
+    ret = fsm_init(&fsm3);
+    if (ret) LOG_ERR("fsm3 init failed: %d", ret);
+
+    /* Register instances so update_int_call can wake them            */
+    fsm_register(&fsm1);
+    fsm_register(&fsm2);
+    fsm_register(&fsm3);
+
+    k_sem_give(&fsm_ready);
     k_sem_give(&fsm_ready);
     k_sem_give(&fsm_ready);
 

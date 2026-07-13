@@ -133,12 +133,18 @@
         };
     };
 
-
+    button_2 {
+        compatible = "gpio-keys";
+        button2: button_2 {
+            gpios = <&gpio0 15 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+        };
+    };
 
     aliases {
         rstn = &rst_n;
         sw0 = &button0;
         sw1 = &button1;
+        sw2 = &button2;
         led0 = &dled0;
         led1 = &dled1;
     };
