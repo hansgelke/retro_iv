@@ -4,16 +4,45 @@
 
 #ifndef SRC_GPIO_I2C_H
 #define SRC_GPIO_I2C_H
+#include <zephyr/device.h>
 
-#define slic_lpsb (0x00)
-#define slic_fora (0x10)
-#define slic_urng (0x20)
-#define slic_reva (0x30)
-#define slic_ring (0x40)
-#define slic_loop (0x50)
-#define slic_tipo (0x60)
-#define slic_powd (0x70)
+/* ------------------------------------------------------------------ */
+/* I2C bus node labels — devicetree references                        */
+/* ------------------------------------------------------------------ */
+#define I2C_NODE_0      DT_NODELABEL(i2c0)
+#define I2C_NODE_1      DT_NODELABEL(i2c1)
+
+/* ------------------------------------------------------------------ */
+/* Shared I2C bus handles — defined in gpio_i2c.c                     */
+/* ------------------------------------------------------------------ */
+extern const struct device *i2c_bus0;
+extern const struct device *i2c_bus1;
+
+/* ------------------------------------------------------------------ */
+/* I2C peripheral addresses — derived from devicetree                 */
+/* ------------------------------------------------------------------ */
+#define PERIPH_ADDR_20  DT_REG_ADDR(DT_NODELABEL(i2c0_peripheral_20))
+#define PERIPH_ADDR_21  DT_REG_ADDR(DT_NODELABEL(i2c0_peripheral_21))
+#define PERIPH_ADDR_24  DT_REG_ADDR(DT_NODELABEL(i2c0_peripheral_24))
+
+/* ------------------------------------------------------------------ */
+/* MCP23017 register addresses                                         */
+/* ------------------------------------------------------------------ */
+#define IODIR_A         0x00    /* I/O direction register A           */
+#define IODIR_B         0x01    /* I/O direction register B           */
+#define GPIO_A          0x12    /* GPIO port A register               */
+#define GPIO_B          0x13    /* GPIO port B register               */
+
+#define slic_lpsb (0x00) // Low Power Standby
+#define slic_fora (0x10) // Forward active
+#define slic_urng (0x20) // unballanced ringing
+#define slic_reva (0x30)//Reverse active
+#define slic_ring (0x40)//Ringing
+#define slic_loop (0x50)// forward loop
+#define slic_tipo (0x60) //Tip Open
+#define slic_powd (0x70) //Power denial
 #define slic_mode (0x70)
+
 
 int i2c_write_register(const struct device *bus,
                                uint8_t dev_addr,

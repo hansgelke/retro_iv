@@ -8,19 +8,11 @@
 
 LOG_MODULE_REGISTER(slic, LOG_LEVEL_DBG);
 
-#define I2C_NODE_0    DT_NODELABEL(i2c0) //controls which bus is accessed
-#define I2C_NODE_1    DT_NODELABEL(i2c1)
-#define PERIPH_ADDR_20 DT_REG_ADDR(DT_NODELABEL(i2c0_peripheral_20))
-#define PERIPH_ADDR_24 DT_REG_ADDR(DT_NODELABEL(i2c0_peripheral_24))
-#define PERIPH_ADDR_21 DT_REG_ADDR(DT_NODELABEL(i2c1_peripheral_21))
-
-#define GPIO_A 0x12 //Address of GPIO_A Register
-#define GPIO_B 0x13
-#define IODIR_A 0x00 //Address of direction Registers
-#define IODIR_B 0x01
-
 int init_slic(void)
     {
+        uint8_t mode = 0x00; //Direction of GPIO A Out
+        uint8_t mask = 0xff;
+
         int ret3 = init_gpios();
         if (ret3 == 0)
         {
@@ -29,15 +21,11 @@ int init_slic(void)
     //
     // Initialize I2C
     //
-        const struct device* i2c_bus0 = DEVICE_DT_GET(I2C_NODE_0);
-
         if (!device_is_ready(i2c_bus0))
         {
             LOG_ERR("I2C bus 0 not ready");
             return -ENODEV;
         }
-
-        const struct device* i2c_bus1 = DEVICE_DT_GET(I2C_NODE_1);
 
         if (!device_is_ready(i2c_bus1))
         {
@@ -135,35 +123,6 @@ int init_slic(void)
                           sizeof(rx_buf21));
 
 
-
-        // ----------------------------------------------------------------
-        // Set controll register to output
-        //----------------------------------------------------------------
-        uint8_t mode = 0x00; //Direction of GPIO A Out
-        uint8_t mask = 0xff;
-        set_slic(i2c_bus0,
-                 PERIPH_ADDR_24,
-                 IODIR_A,
-                 mode,
-                 mask);
-
-         mode = 0x00; //Direction of GPIO B Out
-         mask = 0xff;
-        set_slic(i2c_bus0,
-                 PERIPH_ADDR_24,
-                 IODIR_B,
-                 mode,
-                 mask);
-
-         mode = 0x01;//Set Adress decoder to 1 for CMX no 1
-         mask = 0x0f;
-        set_slic(i2c_bus0,
-                 PERIPH_ADDR_24,
-                 GPIO_B,
-                 mode,
-                 mask);
-
-
         // ----------------------------------------------------------------
         // Set High Battery in SLIC 20*/
         //----------------------------------------------------------------
@@ -200,13 +159,11 @@ int init_slic(void)
         // ----------------------------------------------------------------
         // Sets Sets F0-F3 Bits in SLIC 21*/
         // ----------------------------------------------------------------
-        mode = slic_fora;
-        mask = slic_mode;
         set_slic(i2c_bus0,
                  PERIPH_ADDR_21, //Is the subscriber number
                  GPIO_A,
-                 mode,
-                 mask);
+                 slic_fora,
+                 slic_mode);
 
 
         // ----------------------------------------------------------------
@@ -383,46 +340,7 @@ int init_slic(void)
         LOG_INF("GPIO_B: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
                 PERIPH_ADDR_21, GPIO_B, rx_buf20[0]);
 
-        //--------------------------------
-        // Read registers 0x24
-        //----------------------------------------------------------------
-        i2c_read_register(i2c_bus0,
-                          PERIPH_ADDR_24,
-                          IODIR_A, /* register to read from */
-                          rx_buf20,
-                          sizeof(rx_buf20));
 
-        LOG_INF("IODIR_A: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
-                PERIPH_ADDR_24, IODIR_A, rx_buf20[0]);
-
-        i2c_read_register(i2c_bus0,
-                          PERIPH_ADDR_24,
-                          IODIR_B, /* register to read from */
-                          rx_buf20,
-                          sizeof(rx_buf20));
-
-        LOG_INF("IODIR_B: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
-                PERIPH_ADDR_24, IODIR_B, rx_buf20[0]);
-
-        //-------------------------------------------------------------------
-
-        i2c_read_register(i2c_bus0,
-                          PERIPH_ADDR_24,
-                          GPIO_A, /* register to read from */
-                          rx_buf20,
-                          sizeof(rx_buf20));
-
-        LOG_INF("GPIO_A: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
-                PERIPH_ADDR_24, GPIO_A, rx_buf20[0]);
-
-
-        i2c_read_register(i2c_bus0,
-                          PERIPH_ADDR_24,
-                          GPIO_B, /* register to read from */
-                          rx_buf20,
-                          sizeof(rx_buf20));
-        LOG_INF("GPIO_B: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
-                PERIPH_ADDR_24, GPIO_B, rx_buf20[0]);
 
 
 

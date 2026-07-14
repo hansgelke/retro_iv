@@ -5,6 +5,6 @@
 #ifndef SRC_TONES_H
 #define SRC_TONES_H
 
-#endif //SRC_TONES_H
-
 int initCMX865(void);
+
+#endif //SRC_TONES_H

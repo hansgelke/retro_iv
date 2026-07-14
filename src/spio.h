@@ -7,6 +7,12 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <zephyr/devicetree.h>
+
+/* ------------------------------------------------------------------ */
+/* SPI device node — used by spio.c and any file doing SPI transfers  */
+/* ------------------------------------------------------------------ */
+#define SPI_DEV_NODE    DT_NODELABEL(spi_dev0)
 
 int spi_write_bytes(const uint8_t *data, size_t len);
 

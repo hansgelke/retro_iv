@@ -17,6 +17,8 @@
 LOG_MODULE_REGISTER(gpio_i2c, LOG_LEVEL_DBG);
 
 const struct device* gpio_dev;
+const struct device *i2c_bus0 = DEVICE_DT_GET(I2C_NODE_0);
+const struct device *i2c_bus1 = DEVICE_DT_GET(I2C_NODE_1);
 
 int init_gpios(void)
 {

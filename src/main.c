@@ -77,6 +77,14 @@ int main(void)
 
     init_gpios();
     init_slic();
+    // set spio cs pin on address decoder for spi
+    set_slic(i2c_bus0,
+             PERIPH_ADDR_24,
+             GPIO_B,
+             0x01,//Set Address decoder to 1 for CMX no 1
+             MASK_HIGH);
+    initCMX865();
+    initCMX865();
     initCMX865();
 
     ret = fsm_init(&fsm1);

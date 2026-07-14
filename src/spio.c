@@ -6,8 +6,6 @@
 #include <zephyr/logging/log.h>
 #include "spio.h"
 
-#define SPI_DEV_NODE DT_NODELABEL(spi_dev0)
-
 LOG_MODULE_REGISTER(spi_example, LOG_LEVEL_DBG);
 
 
