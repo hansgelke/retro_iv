@@ -3,7 +3,7 @@
 //
 #include <zephyr/logging/log.h>
 #include "gpio_i2c.h"
-
+#include  "main.h"
 #include "slic.h"
 
 LOG_MODULE_REGISTER(slic, LOG_LEVEL_DBG);
@@ -37,8 +37,8 @@ int init_slic(void)
         /* Initialization Values of GPIODIR and GPIO Registers */
         const uint8_t iodira[] = {0x00}; //Direction of pins 0=out, 1=in
         const uint8_t iodirb[] = {0xc0};
-        const uint8_t gpioa[] = {0x08}; //Set SLIC to power savings, disable mux
-        const uint8_t gpiob[] = {0x08};
+        const uint8_t init_gpioa[] = {0x08}; //Set SLIC to power savings, disable mux
+        const uint8_t init_gpiob[] = {0x08};
 
         /*
          * Initialize IODIR Registers with values above
@@ -72,32 +72,32 @@ int init_slic(void)
         //-------------------------
         i2c_write_register(i2c_bus0,
                            PERIPH_ADDR_20,
-                           GPIO_A, /* target register */
-                           gpioa,
-                           sizeof(gpioa));
+                           MCPREG_GPIO_A, /* target register */
+                           init_gpioa,
+                           sizeof(init_gpioa));
 
 
         i2c_write_register(i2c_bus0,
                            PERIPH_ADDR_20,
-                           GPIO_B, /* target register */
-                           gpiob,
-                           sizeof(gpiob));
+                           MCPREG_GPIO_B, /* target register */
+                           init_gpiob,
+                           sizeof(init_gpiob));
 
         //-----------------------
         // Initialize GPIO 21 Register with values above
         //-------------------------
         i2c_write_register(i2c_bus0,
                            PERIPH_ADDR_21,
-                           GPIO_A, /* target register */
-                           gpioa,
-                           sizeof(gpioa));
+                           MCPREG_GPIO_A, /* target register */
+                           init_gpioa,
+                           sizeof(init_gpioa));
 
 
         i2c_write_register(i2c_bus0,
                            PERIPH_ADDR_21,
-                           GPIO_B, /* target register */
-                           gpiob,
-                           sizeof(gpiob));
+                           MCPREG_GPIO_B, /* target register */
+                           init_gpiob,
+                           sizeof(init_gpiob));
 
         /* ----------------------------------------------------------------
              * READ I2C Register i2c 0x20
@@ -130,7 +130,7 @@ int init_slic(void)
          mask = 0x10;
         set_slic(i2c_bus0,
                  PERIPH_ADDR_20, //Is the subscriber number
-                 GPIO_B,
+                 MCPREG_GPIO_B,
                  mode,
                  mask);
 
@@ -141,7 +141,7 @@ int init_slic(void)
         mask = 0x10;
         set_slic(i2c_bus0,
                  PERIPH_ADDR_21, //Is the subscriber number
-                 GPIO_B,
+                 MCPREG_GPIO_B,
                  mode,
                  mask);
 
@@ -152,7 +152,7 @@ int init_slic(void)
         mask = slic_mode;
         set_slic(i2c_bus0,
                  PERIPH_ADDR_20, //Is the subscriber number
-                 GPIO_A,
+                 MCPREG_GPIO_A,
                  mode,
                  mask);
 
@@ -161,7 +161,7 @@ int init_slic(void)
         // ----------------------------------------------------------------
         set_slic(i2c_bus0,
                  PERIPH_ADDR_21, //Is the subscriber number
-                 GPIO_A,
+                 MCPREG_GPIO_A,
                  slic_fora,
                  slic_mode);
 
@@ -173,7 +173,7 @@ int init_slic(void)
         mask = 0x80;
         set_slic(i2c_bus0,
                  PERIPH_ADDR_20, //Is the subscriber number
-                 GPIO_A,
+                 MCPREG_GPIO_A,
                  mode,
                  mask);
 
@@ -185,7 +185,7 @@ int init_slic(void)
         mask = 0x80;
         set_slic(i2c_bus0,
                  PERIPH_ADDR_21, //Is the subscriber number
-                 GPIO_A,
+                 MCPREG_GPIO_A,
                  mode,
                  mask);
 
@@ -197,7 +197,7 @@ int init_slic(void)
         mask = 0x20;
         set_slic(i2c_bus0,
                  PERIPH_ADDR_20, //Is the subscriber number
-                 GPIO_B,
+                 MCPREG_GPIO_B,
                  mode,
                  mask);
 
@@ -208,7 +208,7 @@ int init_slic(void)
         mask = 0x20;
         set_slic(i2c_bus0,
                  PERIPH_ADDR_21, //Is the subscriber number
-                 GPIO_B,
+                 MCPREG_GPIO_B,
                  mode,
                  mask);
 
@@ -221,7 +221,7 @@ int init_slic(void)
         mask = 0x0f;
         set_slic(i2c_bus0,
                  PERIPH_ADDR_20, //Is the subscriber number
-                 GPIO_B,
+                 MCPREG_GPIO_B,
                  mode,
                  mask);
 
@@ -230,7 +230,7 @@ int init_slic(void)
         mask = 0x0f;
         set_slic(i2c_bus0,
                  PERIPH_ADDR_20, //Is the subscriber number
-                 GPIO_A,
+                 MCPREG_GPIO_A,
                  mode,
                  mask);
 
@@ -243,7 +243,7 @@ int init_slic(void)
         mask = 0x0f;
         set_slic(i2c_bus0,
                  PERIPH_ADDR_21, //Is the subscriber number
-                 GPIO_B,
+                 MCPREG_GPIO_B,
                  mode,
                  mask);
 
@@ -252,7 +252,7 @@ int init_slic(void)
         mask = 0x0f;
         set_slic(i2c_bus0,
                  PERIPH_ADDR_21, //Is the subscriber number
-                 GPIO_A,
+                 MCPREG_GPIO_A,
                  mode,
                  mask);
 
@@ -282,21 +282,21 @@ int init_slic(void)
 
         i2c_read_register(i2c_bus0,
                           PERIPH_ADDR_20,
-                          GPIO_A, /* register to read from */
+                          MCPREG_GPIO_A, /* register to read from */
                           rx_buf20,
                           sizeof(rx_buf20));
 
         LOG_INF("GPIO_A: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
-                PERIPH_ADDR_20, GPIO_A, rx_buf20[0]);
+                PERIPH_ADDR_20, MCPREG_GPIO_A, rx_buf20[0]);
 
 
         i2c_read_register(i2c_bus0,
                           PERIPH_ADDR_20,
-                          GPIO_B, /* register to read from */
+                          MCPREG_GPIO_B, /* register to read from */
                           rx_buf20,
                           sizeof(rx_buf20));
-        LOG_INF("GPIO_B: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
-                PERIPH_ADDR_20, GPIO_B, rx_buf20[0]);
+        LOG_INF("MCPREG_GPIO_B: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
+                PERIPH_ADDR_20, MCPREG_GPIO_B, rx_buf20[0]);
 
 
         // ----------------------------------------------------------------
@@ -324,21 +324,21 @@ int init_slic(void)
 
         i2c_read_register(i2c_bus0,
                           PERIPH_ADDR_21,
-                          GPIO_A, /* register to read from */
+                          MCPREG_GPIO_A, /* register to read from */
                           rx_buf20,
                           sizeof(rx_buf20));
 
         LOG_INF("GPIO_A: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
-                PERIPH_ADDR_21, GPIO_A, rx_buf20[0]);
+                PERIPH_ADDR_21, MCPREG_GPIO_A, rx_buf20[0]);
 
 
         i2c_read_register(i2c_bus0,
                           PERIPH_ADDR_21,
-                          GPIO_B, /* register to read from */
+                          MCPREG_GPIO_B, /* register to read from */
                           rx_buf20,
                           sizeof(rx_buf20));
-        LOG_INF("GPIO_B: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
-                PERIPH_ADDR_21, GPIO_B, rx_buf20[0]);
+        LOG_INF("MCPREG_GPIO_B: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
+                PERIPH_ADDR_21, MCPREG_GPIO_B, rx_buf20[0]);
 
 
 

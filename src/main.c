@@ -10,27 +10,31 @@
 
 LOG_MODULE_DECLARE(main, LOG_LEVEL_DBG);
 
+
 /* ------------------------------------------------------------------ */
 /* FSM instances                                                       */
 /* ------------------------------------------------------------------ */
 
 static struct fsm_instance fsm1 = {
-    .button       = GPIO_DT_SPEC_GET(DT_ALIAS(sw0),  gpios),
+    .button       = GPIO_DT_SPEC_GET(DT_ALIAS(detint),  gpios),
     .engaged_bit  = ENGAGED_FSM1_BIT,
     .int_call_bit = INT_CALL_FSM1_BIT,
+    .status_bit   = 6,
 };
 
 static struct fsm_instance fsm2 = {
-    .button       = GPIO_DT_SPEC_GET(DT_ALIAS(sw1),  gpios),
+    .button       = GPIO_DT_SPEC_GET(DT_ALIAS(detint),  gpios),
     .engaged_bit  = ENGAGED_FSM2_BIT,
     .int_call_bit = INT_CALL_FSM2_BIT,
+    .status_bit   = 7,
 };
 
 /* NOTE: sw2 must be defined in the devicetree overlay               */
 static struct fsm_instance fsm3 = {
-    .button       = GPIO_DT_SPEC_GET(DT_ALIAS(sw2),  gpios),
+    .button       = GPIO_DT_SPEC_GET(DT_ALIAS(detint),  gpios),
     .engaged_bit  = ENGAGED_FSM3_BIT,
     .int_call_bit = INT_CALL_FSM3_BIT,
+    .status_bit   = 5,
 };
 
 /* ------------------------------------------------------------------ */
@@ -67,9 +71,9 @@ K_THREAD_DEFINE(fsm2_tid, FSM_STACK_SIZE, fsm2_thread,
 K_THREAD_DEFINE(fsm3_tid, FSM_STACK_SIZE, fsm3_thread,
                 NULL, NULL, NULL, FSM_PRIORITY, 0, 0);
 
-/* ------------------------------------------------------------------ */
+/* ----------------------------------------------------------- */
 /* main                                                                */
-/* ------------------------------------------------------------------ */
+/* ----------------------------------------------------------- */
 
 int main(void)
 {
@@ -80,7 +84,7 @@ int main(void)
     // set spio cs pin on address decoder for spi
     set_slic(i2c_bus0,
              PERIPH_ADDR_24,
-             GPIO_B,
+             MCPREG_GPIO_B,
              0x01,//Set Address decoder to 1 for CMX no 1
              MASK_HIGH);
     initCMX865();

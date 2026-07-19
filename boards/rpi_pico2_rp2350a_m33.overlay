@@ -140,11 +140,19 @@
         };
     };
 
+    det_int {
+        compatible = "gpio-keys";
+        detint: det_int {
+            gpios = <&gpio0 9 (GPIO_ACTIVE_LOW)>;
+        };
+    };
+
     aliases {
         rstn = &rst_n;
         sw0 = &button0;
         sw1 = &button1;
         sw2 = &button2;
+        detint = &detint;
         led0 = &dled0;
         led1 = &dled1;
     };

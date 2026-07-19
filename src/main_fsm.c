@@ -29,6 +29,12 @@ atomic_t engaged  = ATOMIC_INIT(0);
 #define FSM_MAX_INSTANCES  8
 static struct fsm_instance *fsm_registry[FSM_MAX_INSTANCES];
 
+/* Initialization Values of GPIODIR and GPIO Registers */
+//Direction of pins 0=out, 1=in
+
+
+
+
 void fsm_register(struct fsm_instance *inst)
 {
     if (inst->int_call_bit < FSM_MAX_INSTANCES) {
@@ -315,6 +321,16 @@ static enum smf_state_result s3_run(void *o)
         } else {
             smf_set_state(SMF_CTX(inst), &fsm_states[S1]);
         }
+
+        /* Clear any stale button/timer events accumulated during     */
+        /* dialling so they cannot fire immediately in S7 or S1.     */
+        /* Both the kernel event object and the local copy must be    */
+        /* cleared — inst->events is already loaded from the last     */
+        /* k_event_wait and will be tested again by smf_run_state     */
+        /* if we do not zero it here.                                 */
+        k_event_clear(&inst->event, EVENT_ALL);
+        inst->events = 0;
+
         return SMF_EVENT_HANDLED;
     }
 
@@ -334,8 +350,8 @@ static enum smf_state_result s3_run(void *o)
 static void s3_exit(void *o)
 {
     struct fsm_instance *inst = o;
-    /* Stop pulse timer whenever leaving S3                           */
     k_timer_stop(&inst->pulse_timer);
+    k_timer_stop(&inst->hang_up_timer);
 }
 
 /* ------------------------------------------------------------------ */
@@ -495,12 +511,24 @@ static void button_pressed(const struct device *dev,
     struct fsm_instance *inst =
         CONTAINER_OF(cb, struct fsm_instance, button_cb);
 
-    int level = gpio_pin_get_dt(&inst->button);
+    k_work_submit(&inst->status_work);   /* new k_work in fsm_instance */
+}
 
-    if (level == 1) {
-        k_event_post(&inst->event, EVENT_BTN_ACTIVE);
-    } else {
+static void status_work_handler(struct k_work *work)
+{
+    struct fsm_instance *inst =
+        CONTAINER_OF(work, struct fsm_instance, status_work);
+
+    uint8_t rx_buf20[2] = {0};
+    if (i2c_read_register(i2c_bus0, PERIPH_ADDR_20, MCPREG_GPIO_B,
+                           rx_buf20, sizeof(rx_buf20)) < 0) {
+        return;
+                           }
+
+    if (rx_buf20[0] & BIT(inst->status_bit)) {
         k_event_post(&inst->event, EVENT_BTN_INACTIVE);
+    } else {
+        k_event_post(&inst->event, EVENT_BTN_ACTIVE);
     }
 }
 
@@ -508,9 +536,25 @@ static void button_pressed(const struct device *dev,
 /* Public API                                                          */
 /* ------------------------------------------------------------------ */
 
+
 int fsm_init(struct fsm_instance *inst)
 {
-    int ret;
+int ret;
+
+    // Init GPIO 20 Register for Interrupts
+    uint8_t gpio_data[] = {0x40}; //Bit 6 is the interr.
+i2c_write_register(i2c_bus0,
+                   PERIPH_ADDR_20,
+                   MCPREG_GPINTEN_B, /* target register */
+                   gpio_data,
+                   sizeof(gpio_data));
+
+ uint8_t gpio_data2[] = {0x20}; //Intpol active low
+i2c_write_register(i2c_bus0,
+                   PERIPH_ADDR_20,
+                   MCPREG_IOCON, /* target register */
+                   gpio_data2,
+                   sizeof(gpio_data2));
 
     /* Button */
     if (!gpio_is_ready_dt(&inst->button)) {
@@ -521,11 +565,12 @@ int fsm_init(struct fsm_instance *inst)
     if (ret) return ret;
 
     ret = gpio_pin_interrupt_configure_dt(&inst->button,
-                                          GPIO_INT_EDGE_BOTH);
+                                          GPIO_INT_EDGE_FALLING);
     if (ret) return ret;
 
     gpio_init_callback(&inst->button_cb, button_pressed,
                        BIT(inst->button.pin));
+
     gpio_add_callback(inst->button.port, &inst->button_cb);
 
     /* pulse_timer */
@@ -538,6 +583,8 @@ int fsm_init(struct fsm_instance *inst)
     /* SMF */
     k_event_init(&inst->event);
     smf_set_initial(SMF_CTX(inst), &fsm_states[S0]);
+
+    k_work_init(&inst->status_work, status_work_handler);
 
     return 0;
 }
@@ -556,3 +603,4 @@ int fsm_run(struct fsm_instance *inst)
         }
     }
 }
+

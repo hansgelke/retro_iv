@@ -63,7 +63,7 @@ int initCMX865(void)
 
     set_slic(i2c_bus0,
              PERIPH_ADDR_24,
-             GPIO_B,
+             MCPREG_GPIO_B,
              0x01,//Set Address decoder to 1 for CMX no 1
              MASK_HIGH);
 
@@ -99,21 +99,21 @@ int initCMX865(void)
 
     i2c_read_register(i2c_bus0,
                       PERIPH_ADDR_24,
-                      GPIO_A, /* register to read from */
+                      MCPREG_GPIO_A, /* register to read from */
                       rx_buf20,
                       sizeof(rx_buf20));
 
     LOG_INF("GPIO_A: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
-            PERIPH_ADDR_24, GPIO_A, rx_buf20[0]);
+            PERIPH_ADDR_24, MCPREG_GPIO_A, rx_buf20[0]);
 
 
     i2c_read_register(i2c_bus0,
                       PERIPH_ADDR_24,
-                      GPIO_B, /* register to read from */
+                      MCPREG_GPIO_B, /* register to read from */
                       rx_buf20,
                       sizeof(rx_buf20));
     LOG_INF("GPIO_B: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
-            PERIPH_ADDR_24, GPIO_B, rx_buf20[0]);
+            PERIPH_ADDR_24, MCPREG_GPIO_B, rx_buf20[0]);
 
 
     const uint8_t READBACK_REG = 0xE6;

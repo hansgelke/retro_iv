@@ -23,5 +23,3 @@
 #define MASK_HIGH       0x0F    /* upper nibble cleared, lower active */
 
 #endif /* SRC_MAIN_H */
-
-

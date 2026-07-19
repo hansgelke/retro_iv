@@ -80,6 +80,8 @@ struct fsm_instance {
     struct gpio_dt_spec  button;
     struct gpio_callback button_cb;
 
+    struct k_work         status_work;
+
     struct k_timer       pulse_timer;     /* inter-pulse countdown       */
     bool                 pulse_expired;   /* set by pulse_timer callback */
 
@@ -99,7 +101,8 @@ struct fsm_instance {
 
     /* Which bit of int_call this instance monitors (INT_CALL_FSM1_BIT or INT_CALL_FSM2_BIT) */
     uint8_t              int_call_bit;
-
+    /* Which bit of the shared status register (GPIO_B) this instance watches */
+    uint8_t              status_bit;      /* <-- ADD THIS LINE */
     /* Pointer to the FSM that initiated the current int_call to us  */
     /* Set by update_int_call, used by S5 to notify the caller       */
     struct fsm_instance  *caller;
@@ -107,7 +110,6 @@ struct fsm_instance {
 
 int fsm_init(struct fsm_instance *inst);
 int fsm_run(struct fsm_instance *inst);
-
 /* Register an instance so update_int_call can wake it via EVENT_INT_CALL */
 void fsm_register(struct fsm_instance *inst);
 

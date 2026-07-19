@@ -30,8 +30,25 @@ extern const struct device *i2c_bus1;
 /* ------------------------------------------------------------------ */
 #define IODIR_A         0x00    /* I/O direction register A           */
 #define IODIR_B         0x01    /* I/O direction register B           */
-#define GPIO_A          0x12    /* GPIO port A register               */
-#define GPIO_B          0x13    /* GPIO port B register               */
+#define MCPREG_IOPOL_A          0x02    /* GPIO port A register               */
+#define MCPREG_IOPOL_B          0x03    /* GPIO port B register */
+#define MCPREG_GPINTEN_A          0x04    /* GPIO port B register               */
+#define MCPREG_GPINTEN_B          0x05    /* GPIO port B register               */
+#define MCPREG_DEFVAL_A          0x06    /* GPIO port B register               */
+#define MCPREG_DEFVAL_B          0x07    /* GPIO port B register               */
+#define MCPREG_INTCON_A          0x08    /* GPIO port B register               */
+#define MCPREG_INTCON_B          0x09    /* GPIO port B register               */
+#define MCPREG_IOCON            0x0a    /* GPIO port B register               */
+#define MCPREG_GPPU_A          0x0c    /* GPIO port B register               */
+#define MCPREG_GPPU_B          0x0d    /* GPIO port B register               */
+#define MCPREG_INTF_A          0x0e    /* GPIO port B register               */
+#define MCPREG_INTF_B          0x0f    /* GPIO port B register               */
+#define MCPREG_INTCAP_A          0x10    /* GPIO port B register               */
+#define MCPREG_INTCAP_B          0x11    /* GPIO port B register               */
+#define MCPREG_GPIO_A          0x12    /* GPIO port B register               */
+#define MCPREG_GPIO_B          0x13    /* GPIO port B register               */
+#define MCPREG_OLAT_A          0x14    /* GPIO port B register               */
+#define MCPREG_OLAT_B          0x15    /* GPIO port B register               */
 
 #define slic_lpsb (0x00) // Low Power Standby
 #define slic_fora (0x10) // Forward active
