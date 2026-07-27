@@ -13,7 +13,7 @@ int init_slic(void)
         uint8_t mode = 0x00; //Direction of GPIO A Out
         uint8_t mask = 0xff;
 
-        int ret3 = init_gpios();
+        int ret3 = init_gpios(); //Removes I2C chips reset line
         if (ret3 == 0)
         {
             LOG_INF("GPIO initialisation passed");
@@ -126,7 +126,7 @@ int init_slic(void)
         // ----------------------------------------------------------------
         // Set High Battery in SLIC 20*/
         //----------------------------------------------------------------
-         mode = 0x00;
+         mode = 0x10;
          mask = 0x10;
         set_slic(i2c_bus0,
                  PERIPH_ADDR_20, //Is the subscriber number
@@ -137,7 +137,7 @@ int init_slic(void)
         // ----------------------------------------------------------------
         // Set High Battery in SLIC 21*/
         //----------------------------------------------------------------
-        mode = 0x00;
+        mode = 0x10;
         mask = 0x10;
         set_slic(i2c_bus0,
                  PERIPH_ADDR_21, //Is the subscriber number
@@ -258,7 +258,7 @@ int init_slic(void)
 
 
         // ----------------------------------------------------------------
-        // Read registers 0x20
+        // Read IODIR A and B Register for checking only
         //----------------------------------------------------------------
         i2c_read_register(i2c_bus0,
                           PERIPH_ADDR_20,
@@ -278,7 +278,9 @@ int init_slic(void)
         LOG_INF("IODIR_B: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
                 PERIPH_ADDR_20, IODIR_B, rx_buf20[0]);
 
-        //-------------------------------------------------------------------
+    //-------------------------------------------------------------------
+    // Read GPIO A and B Register for checking only
+    //-------------------------------------------------------------------
 
         i2c_read_register(i2c_bus0,
                           PERIPH_ADDR_20,
@@ -300,7 +302,7 @@ int init_slic(void)
 
 
         // ----------------------------------------------------------------
-        // Read registers 0x21
+        // Read IODIR A and B Register for checking only
         //----------------------------------------------------------------
         i2c_read_register(i2c_bus0,
                           PERIPH_ADDR_21,
@@ -320,6 +322,8 @@ int init_slic(void)
         LOG_INF("IODIR_B: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
                 PERIPH_ADDR_21, IODIR_B, rx_buf20[0]);
 
+        //-------------------------------------------------------------------
+        // Read GPIO A and B Register for checking only
         //-------------------------------------------------------------------
 
         i2c_read_register(i2c_bus0,

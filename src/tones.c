@@ -18,6 +18,66 @@ LOG_MODULE_REGISTER(tone_generator, LOG_LEVEL_DBG);
 #define I2C_INPUT       0xFF    /* MCP23017: all pins as inputs       */
 
 /* ------------------------------------------------------------------ */
+/* tone_task — ringing cadence generator                              */
+/*                                                                     */
+/* One instance per FSM, so each phone line rings independently.      */
+/* The void* parameter carries a tone_instance_t pointer with:        */
+/*   - tone_run semaphore (posted by S5 entry, taken by S5 exit)      */
+/*   - melody pointer (cadence array to play)                         */
+/*   - periph_addr (which SLIC to drive)                              */
+/*                                                                     */
+/* Semaphore protocol:                                                 */
+/*   k_sem_take blocks until S5 posts tone_run (phone starts ringing) */
+/*   k_sem_give re-posts for the next cadence cycle                   */
+/*   When S5 exits it takes tone_run — next k_sem_take blocks again   */
+/* ------------------------------------------------------------------ */
+void tone_task(void *inst, void *b, void *c)
+{
+    tone_instance_t *ti = (tone_instance_t *)inst;
+
+    while (1) {
+        /* Block until this FSM's S5 entry posts tone_run             */
+        k_sem_take(&ti->tone_run, K_FOREVER);
+
+        /* Re-post so the cadence loop keeps cycling                  */
+        k_sem_give(&ti->tone_run);
+
+        /* Walk the cadence table                                     */
+        uint8_t note_idx  = 0;
+        bool    skip_flag = false;
+
+        while ((note_idx < CADENCE_MAX_SEGMENTS) && !skip_flag) {
+
+            bool     tone_on  = ti->melody[note_idx].tone_on;
+            uint32_t sleep_us = ti->melody[note_idx].duration;
+            skip_flag         = ti->melody[note_idx].skip;
+
+            if (tone_on) {
+                /* Turn on bell for this subscriber line              */
+                set_slic(i2c_bus0,
+                         ti->periph_addr,
+                         MCPREG_GPIO_A,
+                         slic_ring,
+                         slic_mode);
+            } else {
+                /* Turn off bell for this subscriber line             */
+                set_slic(i2c_bus0,
+                         ti->periph_addr,
+                         MCPREG_GPIO_A,
+                         slic_fora,
+                         slic_mode);
+            }
+
+            /* Wait for this cadence segment's duration               */
+            k_usleep(sleep_us);
+
+            note_idx++;
+        }
+    }
+}
+
+
+/* ------------------------------------------------------------------ */
 /* Helper — write a CMX865 register and log the readback              */
 /* ------------------------------------------------------------------ */
 static void cmx865_write_verify(const uint8_t *cmd, size_t len,

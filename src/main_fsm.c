@@ -29,12 +29,6 @@
     #define FSM_MAX_INSTANCES  8
     static struct fsm_instance *fsm_registry[FSM_MAX_INSTANCES];
 
-    /* Initialization Values of GPIODIR and GPIO Registers */
-    //Direction of pins 0=out, 1=in
-
-
-
-
     void fsm_register(struct fsm_instance *inst)
     {
         if (inst->int_call_bit < FSM_MAX_INSTANCES) {
@@ -124,7 +118,7 @@
         uint32_t digit = inst->pulse_queue[1];
 
         if (digit == 0 || digit > 10) {
-            LOG_WRN("FSM %p: pulse_queue[1]=%u out of range, int_call not updated",
+            LOG_INF("FSM %p: pulse_queue[1]=%u out of range, int_call not updated",
                     (void *)inst, digit);
             return -1;
         }
@@ -168,8 +162,8 @@
 
         /* This FSM is now idle — clear its engaged bit                   */
         atomic_clear_bit(&engaged, inst->engaged_bit);
-        long val = (long)atomic_get(&engaged);
-        LOG_INF("FSM %p -> S0  engaged=0x%02lx", (void *)inst, val);
+        //long val = (long)atomic_get(&engaged);
+        //LOG_INF("FSM %p -> S0  engaged=0x%02lx", (void *)inst, val);
     }
 
     static enum smf_state_result s0_run(void *o)
@@ -179,10 +173,13 @@
         if (inst->events & EVENT_BTN_ACTIVE) {
             /* Off-hook — mark as engaged, go to S1                       */
             atomic_set_bit(&engaged, inst->engaged_bit);
-            long val = (long)atomic_get(&engaged);
-            LOG_INF("FSM %p leaving S0 (BTN) -> S1  engaged=0x%02lx",
-                    (void *)inst, val);
+            //long val = (long)atomic_get(&engaged);
+            //LOG_INF("FSM %p leaving S0 (BTN) -> S1  engaged=0x%02lx",
+             //       (void *)inst, val);
+
+            LOG_DBG("FSM %p S0 -> S1", (void *)inst);
             smf_set_state(SMF_CTX(inst), &fsm_states[S1]);
+
             return SMF_EVENT_HANDLED;
         }
 
@@ -222,6 +219,7 @@
     {
         struct fsm_instance *inst = o;
         if (inst->events & EVENT_BTN_INACTIVE) {
+            LOG_DBG("FSM %p S1 -> S2", (void *)inst);
             smf_set_state(SMF_CTX(inst), &fsm_states[S2]);
         }
         return SMF_EVENT_HANDLED;
@@ -255,7 +253,7 @@
 
         /* Hang-up takes priority over a button event                     */
         if (inst->events & EVENT_HANGUP_EXPIRED) {
-            LOG_DBG("FSM %p: hang_up_timer expired -> S0 (hang up)", (void *)inst);
+           //LOG_DBG("FSM %p: hang_up_timer expired -> S0 (hang up)", (void *)inst);
             smf_set_state(SMF_CTX(inst), &fsm_states[S0]);
             return SMF_EVENT_HANDLED;
         }
@@ -288,7 +286,7 @@
     {
         struct fsm_instance *inst = o;
         inst->pulse_count++;
-        LOG_DBG("FSM %p -> S3 (pulse %u, timer running)", (void *)inst, inst->pulse_count);
+        //LOG_DBG("FSM %p -> S3 (pulse %u, timer running)", (void *)inst, inst->pulse_count);
 
         /* Start one-shot pulse countdown                                  */
         k_timer_start(&inst->pulse_timer,
@@ -306,11 +304,11 @@
             if (inst->pulse_queue_idx < PULSE_QUEUE_SIZE) {
                 inst->pulse_queue[inst->pulse_queue_idx] = inst->pulse_count;
                 inst->pulse_queue_idx++;
-                LOG_INF("PULSE COUNT %x", inst->pulse_count);
+                //LOG_INF("PULSE COUNT %x", inst->pulse_count);
 
             } else {
-                LOG_WRN("FSM %p: pulse_queue full (%u entries), entry dropped",
-                        (void *)inst, PULSE_QUEUE_SIZE);
+                //LOG_INF("FSM %p: pulse_queue full (%u entries), entry dropped",
+                      //  (void *)inst, PULSE_QUEUE_SIZE);
             }
             log_pulse_queue(inst);
             int called_bit = update_int_call(inst);
@@ -321,6 +319,7 @@
                         (void *)inst, called_bit);
                 smf_set_state(SMF_CTX(inst), &fsm_states[S7]);
             } else {
+                LOG_INF("FSM %p S3 -> S1", (void *)inst);
                 smf_set_state(SMF_CTX(inst), &fsm_states[S1]);
             }
 
@@ -338,10 +337,10 @@
 
         if (inst->events & EVENT_BTN_INACTIVE) {
             if (!inst->pulse_expired) {
-                LOG_DBG("FSM %p: pulse end, timer active -> S2", (void *)inst);
+               // LOG_DBG("FSM %p: pulse end, timer active -> S2", (void *)inst);
                 smf_set_state(SMF_CTX(inst), &fsm_states[S2]);
             } else {
-                LOG_DBG("FSM %p: pulse end, timer already expired -> S1", (void *)inst);
+                //LOG_DBG("FSM %p: pulse end, timer already expired -> S1", (void *)inst);
                 smf_set_state(SMF_CTX(inst), &fsm_states[S1]);
             }
         }
@@ -353,11 +352,11 @@
     {
         struct fsm_instance *inst = o;
         k_timer_stop(&inst->pulse_timer);
-        k_timer_stop(&inst->hang_up_timer);
+        k_timer_stop(&inst->hang_up_timer); /* that is new*/
     }
 
     /* ------------------------------------------------------------------ */
-    /* S4                            */
+    /* S4         not used yet                   */
     /* ------------------------------------------------------------------ */
 
     static void s4_entry(void *o) { struct fsm_instance *inst = o; LOG_DBG("FSM %p -> S4", (void *)inst); }
@@ -369,11 +368,19 @@
         }
         return SMF_EVENT_HANDLED;
     }
-
+/* ------------------------------------------------------------------ */
+/* S5 The called phone rings its bell, until the receiver is lifted */
+/*
+/* ------------------------------------------------------------------ */
     static void s5_entry(void *o)
     {
         struct fsm_instance *inst = o;
         LOG_INF("FSM %p -> S5 (ringing, waiting for BTN_ACTIVE)", (void *)inst);
+
+        /* Start ringing for this subscriber line                         */
+        if (inst->tone != NULL) {
+            k_sem_give(&inst->tone->tone_run);
+        }
     }
 
     static enum smf_state_result s5_run(void *o)
@@ -382,6 +389,11 @@
 
         if (inst->events & EVENT_BTN_ACTIVE) {
             /* Recipient picked up — clear the int_call bit               */
+            if (inst->tone != NULL) {
+                k_sem_take(&inst->tone->tone_run, K_NO_WAIT);
+            }
+
+            /* Clear the int_call bit                                     */
             atomic_clear_bit(&int_call, inst->int_call_bit);
             long val = (long)atomic_get(&int_call);
             LOG_INF("FSM %p: int_call bit %u cleared  int_call=0x%03lx",
@@ -390,8 +402,8 @@
             /* Notify the caller that int_call has been cleared           */
             if (inst->caller != NULL) {
                 k_event_post(&inst->caller->event, EVENT_INT_CALL_CLEARED);
-                LOG_INF("FSM %p: notified caller FSM %p",
-                        (void *)inst, (void *)inst->caller);
+                //LOG_INF("FSM %p: notified caller FSM %p",
+                       // (void *)inst, (void *)inst->caller);
                 inst->caller = NULL;
             }
 
@@ -404,6 +416,12 @@
             if (!atomic_test_bit(&int_call, inst->int_call_bit)) {
                 LOG_INF("FSM %p: caller hung up, int_call cleared -> S0",
                         (void *)inst);
+
+                /* Stop ringing                                           */
+                if (inst->tone != NULL) {
+                    k_sem_take(&inst->tone->tone_run, K_NO_WAIT);
+                }
+
                 inst->caller = NULL;
                 smf_set_state(SMF_CTX(inst), &fsm_states[S0]);
             }
@@ -413,7 +431,7 @@
     }
 
     /* ------------------------------------------------------------------ */
-    /* State S6 — button pressed, wait for BTN_INACTIVE then go to S2    */
+    /* State S6 — Waiting for Caller to be established   */
     /* ------------------------------------------------------------------ */
 
     static void s6_entry(void *o)
@@ -427,16 +445,16 @@
         struct fsm_instance *inst = o;
         /* Wait for button release, then enter pulse-counting path via S2 */
         if (inst->events & EVENT_BTN_INACTIVE) {
-            smf_set_state(SMF_CTX(inst), &fsm_states[S2]);
+            LOG_INF("FSM %p -> BTN_INACTIVE GO TO S0)", (void *)inst);
+            smf_set_state(SMF_CTX(inst), &fsm_states[S0]);
+
         }
         return SMF_EVENT_HANDLED;
     }
 
     /* ------------------------------------------------------------------ */
-    /* State S7 — caller waiting for recipient to pick up                 */
-    /* Entered from S0 when BTN_ACTIVE fires and int_call_bit is set.     */
-    /* Waits until S5 of the recipient clears the int_call bit, which     */
-    /* posts EVENT_INT_CALL_CLEARED to this instance. Then goes to S1.    */
+    /* State S7 —  Waits here if the calee confirmed lifting receiver   */
+    /* by clearing the call bit then goes to s6 (established */
     /* ------------------------------------------------------------------ */
 
     static void s7_entry(void *o)
@@ -451,8 +469,8 @@
 
         if (inst->events & EVENT_INT_CALL_CLEARED) {
             /* Recipient has picked up — int_call bit was cleared by S5   */
-            LOG_INF("FSM %p: int_call cleared -> S1", (void *)inst);
-            smf_set_state(SMF_CTX(inst), &fsm_states[S1]);
+            LOG_INF("FSM %p: int_call cleared -> S6", (void *)inst);
+            smf_set_state(SMF_CTX(inst), &fsm_states[S6]);
             return SMF_EVENT_HANDLED;
         }
 
@@ -461,6 +479,7 @@
             /* notify recipient in S5 so it can return to S0             */
             int target_bit = (int)(inst->pulse_queue[1] - 1);
             atomic_clear_bit(&int_call, target_bit);
+
             long val = (long)atomic_get(&int_call);
             LOG_INF("FSM %p: hung up in S7, int_call=0x%03lx -> S0",
                     (void *)inst, val);
@@ -476,8 +495,14 @@
         return SMF_EVENT_HANDLED;
     }
 
+/* ------------------------------------------------------------------ */
+/* State S8 — After connection established, one of the phones hangs up   */
+/* ------------------------------------------------------------------ */
+
     static void s8_entry(void *o) { struct fsm_instance *inst = o;
-        LOG_DBG("FSM %p -> S8", (void *)inst); }
+        //LOG_DBG("FSM %p -> S8", (void *)inst);
+        }
+
     static enum smf_state_result s8_run(void *o)
     {
         struct fsm_instance *inst = o;
@@ -504,7 +529,8 @@
     };
 
     /* ------------------------------------------------------------------ */
-    /* ISR — one function serves all instances via CONTAINER_OF            */
+    /* ISR — one function serves all instances via CONTAINER_OF          */
+    /* It is on purpose very short.  */
     /* ------------------------------------------------------------------ */
 
     static void button_pressed(const struct device *dev,
@@ -516,7 +542,8 @@
         k_work_submit(&inst->status_work);   /* new k_work in fsm_instance */
     }
     /* ------------------------------------------------------------------ */
-    /* Work_handler            */
+    /* Work_handler - Evalautes the register contents of the detect lines           */
+    /* And generates and EVENT which is used in the FSM  */
     /* ------------------------------------------------------------------ */
 
 
@@ -552,7 +579,6 @@
     /* Public API                                                          */
     /* ------------------------------------------------------------------ */
 
-
     int fsm_init(struct fsm_instance *inst)
     {
     int ret;
@@ -586,14 +612,13 @@
 
         gpio_init_callback(&inst->button_cb, button_pressed,
                            BIT(inst->button.pin));
-
         gpio_add_callback(inst->button.port, &inst->button_cb);
 
-        /* pulse_timer */
+        /* pulse_timer pulse_timer_expired is call back function*/
         k_timer_init(&inst->pulse_timer, pulse_timer_expired, NULL);
         inst->pulse_expired = false;
 
-        /* hang_up_timer */
+        /* hang_up_timer, hang_up_timer_expired is call back function */
         k_timer_init(&inst->hang_up_timer, hang_up_timer_expired, NULL);
 
         /* SMF */

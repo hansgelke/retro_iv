@@ -8,6 +8,7 @@
 #include <zephyr/smf.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/atomic.h>
+#include "tones.h"
 
 /* ------------------------------------------------------------------ */
 /* int_call — shared one-hot register (common to fsm1 and fsm2)       */
@@ -106,10 +107,14 @@ struct fsm_instance {
     /* Pointer to the FSM that initiated the current int_call to us  */
     /* Set by update_int_call, used by S5 to notify the caller       */
     struct fsm_instance  *caller;
+
+    /* Per-instance tone task context — controls ringing for this line */
+    tone_instance_t      *tone;
 };
 
 int fsm_init(struct fsm_instance *inst);
 int fsm_run(struct fsm_instance *inst);
+
 /* Register an instance so update_int_call can wake it via EVENT_INT_CALL */
 void fsm_register(struct fsm_instance *inst);
 

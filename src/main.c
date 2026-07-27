@@ -8,7 +8,27 @@
 #include <zephyr/smf.h>
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_DECLARE(main, LOG_LEVEL_DBG);
+LOG_MODULE_DECLARE(main, LOG_LEVEL_INF);
+
+/* ------------------------------------------------------------------ */
+/* Tone instances — one per subscriber line                           */
+/* tone_run initialised to 0 (blocked), melody = gb_ring              */
+/* periph_addr identifies which SLIC to ring                          */
+/* ------------------------------------------------------------------ */
+static tone_instance_t tone1 = {
+    .melody      = de_ring,
+    .periph_addr = PERIPH_ADDR_20,
+};
+
+static tone_instance_t tone2 = {
+    .melody      = de_ring,
+    .periph_addr = PERIPH_ADDR_21,
+};
+
+static tone_instance_t tone3 = {
+    .melody      = de_ring,
+    .periph_addr = PERIPH_ADDR_21,   /* update when hw address known  */
+};
 
 
 /* ------------------------------------------------------------------ */
@@ -19,6 +39,7 @@ static struct fsm_instance fsm1 = {
     .button       = GPIO_DT_SPEC_GET(DT_ALIAS(detint),  gpios),
     .engaged_bit  = ENGAGED_FSM1_BIT,
     .int_call_bit = INT_CALL_FSM1_BIT,
+    .tone         = &tone1,
     .status_bit   = 6,
 };
 
@@ -26,6 +47,7 @@ static struct fsm_instance fsm2 = {
     .button       = GPIO_DT_SPEC_GET(DT_ALIAS(detint),  gpios),
     .engaged_bit  = ENGAGED_FSM2_BIT,
     .int_call_bit = INT_CALL_FSM2_BIT,
+    .tone         = &tone2,
     .status_bit   = 7,
 };
 
@@ -34,6 +56,7 @@ static struct fsm_instance fsm3 = {
     .button       = GPIO_DT_SPEC_GET(DT_ALIAS(detint),  gpios),
     .engaged_bit  = ENGAGED_FSM3_BIT,
     .int_call_bit = INT_CALL_FSM3_BIT,
+    .tone         = &tone3,
     .status_bit   = 5,
 };
 
@@ -43,6 +66,8 @@ static struct fsm_instance fsm3 = {
 
 #define FSM_STACK_SIZE  1024
 #define FSM_PRIORITY    5
+#define TONE_STACK_SIZE  1024
+#define TONE_PRIORITY    6
 
 static K_SEM_DEFINE(fsm_ready, 0, 3);
 
@@ -71,6 +96,14 @@ K_THREAD_DEFINE(fsm2_tid, FSM_STACK_SIZE, fsm2_thread,
 K_THREAD_DEFINE(fsm3_tid, FSM_STACK_SIZE, fsm3_thread,
                 NULL, NULL, NULL, FSM_PRIORITY, 0, 0);
 
+/* Tone threads — one per subscriber line, pass tone_instance as arg */
+K_THREAD_DEFINE(tone1_tid, TONE_STACK_SIZE, tone_task,
+                &tone1, NULL, NULL, TONE_PRIORITY, 0, 0);
+K_THREAD_DEFINE(tone2_tid, TONE_STACK_SIZE, tone_task,
+                &tone2, NULL, NULL, TONE_PRIORITY, 0, 0);
+K_THREAD_DEFINE(tone3_tid, TONE_STACK_SIZE, tone_task,
+                &tone3, NULL, NULL, TONE_PRIORITY, 0, 0);
+
 /* ----------------------------------------------------------- */
 /* main                                                                */
 /* ----------------------------------------------------------- */
@@ -78,6 +111,11 @@ K_THREAD_DEFINE(fsm3_tid, FSM_STACK_SIZE, fsm3_thread,
 int main(void)
 {
     int ret;
+
+    /* Initialise tone_run semaphores — blocked at start              */
+    k_sem_init(&tone1.tone_run, 0, 1);
+    k_sem_init(&tone2.tone_run, 0, 1);
+    k_sem_init(&tone3.tone_run, 0, 1);
 
     init_gpios();
     init_slic();
