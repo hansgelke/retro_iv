@@ -7,6 +7,7 @@
 #include "tones.h"
 #include "spio.h"
 #include "main.h"
+#include "slic.h"
 #include "gpio_i2c.h"
 
 LOG_MODULE_REGISTER(tone_generator, LOG_LEVEL_DBG);
@@ -57,15 +58,15 @@ void tone_task(void *inst, void *b, void *c)
                 set_slic(i2c_bus0,
                          ti->periph_addr,
                          MCPREG_GPIO_A,
-                         slic_ring,
-                         slic_mode);
+                         SLIC_RING,
+                         SLIC_MODE);
             } else {
                 /* Turn off bell for this subscriber line             */
                 set_slic(i2c_bus0,
                          ti->periph_addr,
                          MCPREG_GPIO_A,
-                         slic_fora,
-                         slic_mode);
+                         SLIC_FORA,
+                         SLIC_MODE);
             }
 
             /* Wait for this cadence segment's duration               */
@@ -111,13 +112,13 @@ int initCMX865(void)
     //----------------------------------------------------------------
     set_slic(i2c_bus0,
              PERIPH_ADDR_24,
-             IODIR_A,
+             MCPREG_IODIR_A,
              I2C_OUTPUT,
              MASK_NO);
 
     set_slic(i2c_bus0,
              PERIPH_ADDR_24,
-             IODIR_B,
+             MCPREG_IODIR_B,
              I2C_OUTPUT,
              MASK_NO);
 
@@ -139,21 +140,21 @@ int initCMX865(void)
     uint8_t rx_buf20[2] = {0};
     i2c_read_register(i2c_bus0,
                       PERIPH_ADDR_24,
-                      IODIR_A, /* register to read from */
+                      MCPREG_IODIR_A, /* register to read from */
                       rx_buf20,
                       sizeof(rx_buf20));
 
     LOG_INF("IODIR_A: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
-            PERIPH_ADDR_24, IODIR_A, rx_buf20[0]);
+            PERIPH_ADDR_24, MCPREG_IODIR_A, rx_buf20[0]);
 
     i2c_read_register(i2c_bus0,
                       PERIPH_ADDR_24,
-                      IODIR_B, /* register to read from */
+                      MCPREG_IODIR_B, /* register to read from */
                       rx_buf20,
                       sizeof(rx_buf20));
 
     LOG_INF("IODIR_B: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
-            PERIPH_ADDR_24, IODIR_B, rx_buf20[0]);
+            PERIPH_ADDR_24, MCPREG_IODIR_B, rx_buf20[0]);
 
     //-------------------------------------------------------------------
 

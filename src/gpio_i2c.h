@@ -28,8 +28,8 @@ extern const struct device *i2c_bus1;
 /* ------------------------------------------------------------------ */
 /* MCP23017 register addresses                                         */
 /* ------------------------------------------------------------------ */
-#define IODIR_A         0x00    /* I/O direction register A           */
-#define IODIR_B         0x01    /* I/O direction register B           */
+#define MCPREG_IODIR_A         0x00    /* I/O direction register A           */
+#define MCPREG_IODIR_B         0x01    /* I/O direction register B           */
 #define MCPREG_IOPOL_A          0x02    /* GPIO port A register               */
 #define MCPREG_IOPOL_B          0x03    /* GPIO port B register */
 #define MCPREG_GPINTEN_A          0x04    /* GPIO port B register               */
@@ -48,17 +48,10 @@ extern const struct device *i2c_bus1;
 #define MCPREG_GPIO_A          0x12    /* GPIO port B register               */
 #define MCPREG_GPIO_B          0x13    /* GPIO port B register               */
 #define MCPREG_OLAT_A          0x14    /* GPIO port B register               */
-#define MCPREG_OLAT_B          0x15    /* GPIO port B register               */
+#define MCPREG_OLAT_B          0x15    /* GPIO port B register  */
+#define MCPREG_GPIO 0x00                */
 
-#define slic_lpsb (0x00) // Low Power Standby
-#define slic_fora (0x10) // Forward active
-#define slic_urng (0x20) // unballanced ringing
-#define slic_reva (0x30)//Reverse active
-#define slic_ring (0x40)//Ringing
-#define slic_loop (0x50)// forward loop
-#define slic_tipo (0x60) //Tip Open
-#define slic_powd (0x70) //Power denial
-#define slic_mode (0x70)
+
 
 
 int i2c_write_register(const struct device *bus,
@@ -74,11 +67,9 @@ int i2c_read_register(const struct device *bus,
                               size_t len);
 int init_gpios(void);
 
-int set_slic(const struct device *bus,
-                    uint8_t dev_addr,
-                    uint8_t reg_addr,
-                    uint8_t mode,//Is the subscriber number
-                    uint8_t mask);  //Is the mode to be set
+
+
+
 
 
 #endif //SRC_GPIO_I2C_H

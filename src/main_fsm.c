@@ -164,6 +164,8 @@
         atomic_clear_bit(&engaged, inst->engaged_bit);
         //long val = (long)atomic_get(&engaged);
         //LOG_INF("FSM %p -> S0  engaged=0x%02lx", (void *)inst, val);
+        // Sets Slic in Mode LPSB
+      //  set_slic_mode (i2c_bus0, 0, SLIC_LPSB);
     }
 
     static enum smf_state_result s0_run(void *o)
