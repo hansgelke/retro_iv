@@ -15,13 +15,17 @@
 #define SLIC_POWD (0x70) //Power denial
 #define SLIC_MODE (0x70)
 
-#define BATSEL (0x10)
+#define BATSEL_MASK (0x10)
 #define BATHI (0x10)
 #define BATLO (0x00)
 
 #define SLIC_DIR_B (0xc0)
 #define SLIC_DIR_A (0x00)
 #define SLIC_DIR (0xff)
+
+#define AUX_DIR_A (0x00)
+#define AUX_DIR_B (0x00)
+#define AUX_DIR (0xff)
 
 #define SLIC_MUX (0x0f)
 #define SLIC_MUX_DIS (0x80)

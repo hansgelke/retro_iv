@@ -372,7 +372,6 @@
     }
 /* ------------------------------------------------------------------ */
 /* S5 The called phone rings its bell, until the receiver is lifted */
-/*
 /* ------------------------------------------------------------------ */
     static void s5_entry(void *o)
     {
@@ -502,7 +501,7 @@
 /* ------------------------------------------------------------------ */
 
     static void s8_entry(void *o) { struct fsm_instance *inst = o;
-        //LOG_DBG("FSM %p -> S8", (void *)inst);
+        LOG_DBG("FSM %p -> S8", (void *)inst);
         }
 
     static enum smf_state_result s8_run(void *o)

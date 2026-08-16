@@ -14,7 +14,7 @@
 #define GPIO_NODE DT_NODELABEL(gpio0)
 
 
-LOG_MODULE_REGISTER(gpio_i2c, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(gpio_i2c, LOG_LEVEL_INF);
 
 const struct device* gpio_dev;
 const struct device *i2c_bus0 = DEVICE_DT_GET(I2C_NODE_0);
@@ -27,7 +27,7 @@ int init_gpios(void)
     ret = gpio_pin_configure(gpio_dev, RST_N_PIN, GPIO_OUTPUT_INACTIVE);
     gpio_pin_set(gpio_dev, RST_N_PIN, 1);
 
-    //LOG_INF("Alle GPIOs initialisiert");
+    LOG_INF("I2C RESET PIN RELEASED");
     return 0;
 }
 

@@ -45,7 +45,7 @@ static note_t gb_ring[CADENCE_MAX_SEGMENTS] = {
 
 static note_t de_ring[CADENCE_MAX_SEGMENTS] = {
     /* duration   freq_1   freq_2   vol    tone_on  ringer_on  skip  */
-    {  2000000,    450.0,   400.0,   0.5,   true,    true,      true },
+    {  2000000,    450.0,   400.0,   0.5,   true,    true,      false },
     {  4000000,    450.0,   400.0,   0.5,   false,   false,     true },
 
 };

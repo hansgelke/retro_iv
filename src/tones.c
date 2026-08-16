@@ -107,27 +107,6 @@ int initCMX865(void)
 
     LOG_INF("CMX865 init starting");
 
-    // ----------------------------------------------------------------
-    // Set controll register to output to I2C Device address 0x24
-    //----------------------------------------------------------------
-    set_slic(i2c_bus0,
-             PERIPH_ADDR_24,
-             MCPREG_IODIR_A,
-             I2C_OUTPUT,
-             MASK_NO);
-
-    set_slic(i2c_bus0,
-             PERIPH_ADDR_24,
-             MCPREG_IODIR_B,
-             I2C_OUTPUT,
-             MASK_NO);
-
-    set_slic(i2c_bus0,
-             PERIPH_ADDR_24,
-             MCPREG_GPIO_B,
-             0x01,//Set Address decoder to 1 for CMX no 1
-             MASK_HIGH);
-
     if (!spi_is_ready_dt(&spi_dev)) {
         LOG_ERR("SPI device not ready");
         return -ENODEV;
@@ -138,11 +117,7 @@ int initCMX865(void)
     //----------------------------------------------------------------
 
     uint8_t rx_buf20[2] = {0};
-    i2c_read_register(i2c_bus0,
-                      PERIPH_ADDR_24,
-                      MCPREG_IODIR_A, /* register to read from */
-                      rx_buf20,
-                      sizeof(rx_buf20));
+    i2c_read_register(i2c_bus0, PERIPH_ADDR_24, MCPREG_IODIR_A, rx_buf20, sizeof(rx_buf20));
 
     LOG_INF("IODIR_A: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
             PERIPH_ADDR_24, MCPREG_IODIR_A, rx_buf20[0]);

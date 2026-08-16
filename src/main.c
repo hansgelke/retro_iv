@@ -112,22 +112,34 @@ int main(void)
 {
     int ret;
 
-    /* Initialise tone_run semaphores — blocked at start              */
-    k_sem_init(&tone1.tone_run, 0, 1);
-    k_sem_init(&tone2.tone_run, 0, 1);
-    k_sem_init(&tone3.tone_run, 0, 1);
-
-    init_gpios();
+init_gpios();
     init_slic();
+
+
+
+
     // set spio cs pin on address decoder for spi
     set_slic(i2c_bus0,
              PERIPH_ADDR_24,
              MCPREG_GPIO_B,
-             0x01,//Set Address decoder to 1 for CMX no 1
+             0x00,//Set Address decoder to 0 for CMX no 1
              MASK_HIGH);
+
+initCMX865();
+    set_slic(i2c_bus0,
+                 PERIPH_ADDR_24,
+                 MCPREG_GPIO_B,
+                 0x01,//Set Address decoder to 1 for CMX no 1
+                 MASK_HIGH);
     initCMX865();
-    initCMX865();
-    initCMX865();
+
+
+/* Initialise tone_run semaphores — blocked at start              */
+    k_sem_init(&tone1.tone_run, 0, 1);
+    k_sem_init(&tone2.tone_run, 0, 1);
+    k_sem_init(&tone3.tone_run, 0, 1);
+
+
 
     ret = fsm_init(&fsm1);
     if (ret) LOG_ERR("fsm1 init failed: %d", ret);
