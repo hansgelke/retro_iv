@@ -426,6 +426,23 @@ static enum smf_state_result s5_run(void* o)
 
     if (inst->events & EVENT_BTN_ACTIVE)
     {
+        /* BTN line can glitch briefly active due to a HW bug.         */
+        /* Wait 20 ms and re-check the raw GPIO bit before accepting   */
+        /* this as a genuine pickup.                                  */
+        k_sleep(K_MSEC(20));
+
+        uint8_t gpio_buf20[2] = {0};
+        i2c_read_register(i2c_bus0, PERIPH_ADDR_20, MCPREG_GPIO_B,
+                          gpio_buf20, sizeof(gpio_buf20));
+
+        if (gpio_buf20[0] & BIT(inst->status_bit))
+        {
+            /* Bit set = loop inactive again -> glitch, ignore it      */
+            LOG_INF("FSM %p: BTN_ACTIVE in S5 was a glitch, ignoring",
+                    (void*)inst);
+            return SMF_EVENT_HANDLED;
+        }
+
         /* Recipient picked up — clear the int_call bit               */
         if (inst->tone != NULL)
         {

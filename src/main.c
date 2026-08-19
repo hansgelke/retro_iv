@@ -16,7 +16,7 @@ LOG_MODULE_DECLARE(main, LOG_LEVEL_NONE);
 /* periph_addr identifies which SLIC to ring                          */
 /* ------------------------------------------------------------------ */
 static tone_instance_t tone1 = {
-    .melody = de_ring,
+    .melody = gb_ring,
     .periph_addr = PERIPH_ADDR_20,
 };
 
