@@ -10,7 +10,7 @@
 #include "slic.h"
 #include "gpio_i2c.h"
 
-LOG_MODULE_REGISTER(tone_generator, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(tone_generator, LOG_LEVEL_NONE);
 
 /* tones.c-specific mask constants not defined elsewhere              */
 #define MASK_LOW        0xF0

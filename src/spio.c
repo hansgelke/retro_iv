@@ -6,7 +6,7 @@
 #include <zephyr/logging/log.h>
 #include "spio.h"
 
-LOG_MODULE_REGISTER(spi_example, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(spi_example, LOG_LEVEL_NONE);
 
 
 const struct spi_dt_spec spi_dev =

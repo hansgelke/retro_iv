@@ -28,7 +28,9 @@
 #define AUX_DIR (0xff)
 
 #define SLIC_MUX (0x0f)
-#define SLIC_MUX_DIS (0x80)
+#define SLIC_MUX_DIS (0x08)
+#define SLIC_MUX_7 (0x07)
+#define SLIC_MUX_a (0x0a)
 
 #define SLIC_E0 (0x80)
 #define SLIC_E0_MASK (0x80)

@@ -7,7 +7,7 @@
 #include "slic.h"
 #include <zephyr/drivers/i2c.h>
 
-LOG_MODULE_REGISTER(slic, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(slic, LOG_LEVEL_NONE);
 
 //----------------------------------------
 // Initialice I2C in SLICs
@@ -15,6 +15,8 @@ LOG_MODULE_REGISTER(slic, LOG_LEVEL_INF);
 
 int init_slic(void)
     {
+
+    uint8_t rx_buf20[2] = {0};
     //----------------------------------------
     // Check if I2C is ready
     //-----------------------------------------
@@ -50,8 +52,10 @@ int init_slic(void)
     //-----------------------
     // Initialize SLIC RX MUXER  with default values = output disabled
     //-------------------------
-    set_slic_rxmux(i2c_bus0,0, SLIC_MUX_DIS);
-    set_slic_rxmux(i2c_bus0,1, SLIC_MUX_DIS);
+   // set_slic_rxmux(i2c_bus0,0, SLIC_MUX_a);
+   // set_slic_rxmux(i2c_bus0,1, SLIC_MUX_a);
+    set_slic(i2c_bus0,PERIPH_ADDR_20, MCPREG_GPIO_B,SLIC_MUX_DIS,SLIC_MUX);
+    set_slic(i2c_bus0,PERIPH_ADDR_21, MCPREG_GPIO_B,SLIC_MUX_DIS,SLIC_MUX);
 
         // ----------------------------------------------------------------
         // Set Low/HIGH Battery in both SLICs, BSEL*/
@@ -102,13 +106,13 @@ int init_slic(void)
         // ----------------------------------------------------------------
         // Read IODIR A and B Register for checking only
         //----------------------------------------------------------------
-    uint8_t rx_buf20[2] = {0};
+   // uint8_t rx_buf20[2] = {0};
         i2c_read_register(i2c_bus0,
                           PERIPH_ADDR_20,
                           MCPREG_IODIR_A, /* register to read from */
                           rx_buf20,
                           sizeof(rx_buf20));
-        LOG_INF("20IODIR_A: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
+        LOG_INF("IODIR_A: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
                 PERIPH_ADDR_20, MCPREG_IODIR_A, rx_buf20[0]);
 
         i2c_read_register(i2c_bus0,
@@ -116,7 +120,7 @@ int init_slic(void)
                           MCPREG_IODIR_B, /* register to read from */
                           rx_buf20,
                           sizeof(rx_buf20));
-        LOG_INF("20IODIR_B: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
+        LOG_INF("IODIR_B: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
                 PERIPH_ADDR_20, MCPREG_IODIR_B, rx_buf20[0]);
 
     //-------------------------------------------------------------------
@@ -128,7 +132,7 @@ int init_slic(void)
                           MCPREG_GPIO_A, /* register to read from */
                           rx_buf20,
                           sizeof(rx_buf20));
-        LOG_INF("20GPIO_A: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
+        LOG_INF("GPIO_A: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
                 PERIPH_ADDR_20, MCPREG_GPIO_A, rx_buf20[0]);
 
         i2c_read_register(i2c_bus0,
@@ -136,7 +140,7 @@ int init_slic(void)
                           MCPREG_GPIO_B, /* register to read from */
                           rx_buf20,
                           sizeof(rx_buf20));
-        LOG_INF("20GPIO_B: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
+        LOG_INF("GPIO_B: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
                 PERIPH_ADDR_20, MCPREG_GPIO_B, rx_buf20[0]);
 
 
@@ -148,7 +152,7 @@ int init_slic(void)
                           MCPREG_IODIR_A, /* register to read from */
                           rx_buf20,
                           sizeof(rx_buf20));
-        LOG_INF("21IODIR_A: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
+        LOG_INF("IODIR_A: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
                 PERIPH_ADDR_21, MCPREG_IODIR_A, rx_buf20[0]);
 
         i2c_read_register(i2c_bus0,
@@ -156,7 +160,7 @@ int init_slic(void)
                           MCPREG_IODIR_B, /* register to read from */
                           rx_buf20,
                           sizeof(rx_buf20));
-        LOG_INF("21IODIR_B: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
+        LOG_INF("IODIR_B: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
                 PERIPH_ADDR_21, MCPREG_IODIR_B, rx_buf20[0]);
 
         //-------------------------------------------------------------------
@@ -168,7 +172,7 @@ int init_slic(void)
                           MCPREG_GPIO_A, /* register to read from */
                           rx_buf20,
                           sizeof(rx_buf20));
-        LOG_INF("21GPIO_A: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
+        LOG_INF("GPIO_A: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
                 PERIPH_ADDR_21, MCPREG_GPIO_A, rx_buf20[0]);
 
 
@@ -177,7 +181,7 @@ int init_slic(void)
                           MCPREG_GPIO_B, /* register to read from */
                           rx_buf20,
                           sizeof(rx_buf20));
-        LOG_INF("21GPIO_B: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
+        LOG_INF("GPIO_B: slave 0x%02x, reg_addr: 0x%02x data: 0x%02x",
                 PERIPH_ADDR_21, MCPREG_GPIO_B, rx_buf20[0]);
 
 
@@ -316,13 +320,15 @@ int set_slic_txmux(const struct device* bus,
     ret = i2c_write(bus, buf, sizeof(buf), dev_addr);
     return ret;
 }
-
+/* ----------------------------------------------------------------*/
+/* Function Sets RX_MUX in SLIC  */
+/* -------------------------------------------------------------*/
 int set_slic_rxmux(const struct device* bus,
              uint8_t device, //Is the subscriber number
              uint8_t val)
 {
-    uint8_t reg_addr = MCPREG_GPIO_B; //GPIO A
-    uint8_t mode_mask = SLIC_MUX; //Bits 4-6
+    uint8_t reg_addr = MCPREG_GPIO_B;
+    uint8_t mode_mask = SLIC_MUX;
     uint8_t byte[2] = {0x0};
     uint8_t dev_addr;
 

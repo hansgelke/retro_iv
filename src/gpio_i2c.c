@@ -14,7 +14,7 @@
 #define GPIO_NODE DT_NODELABEL(gpio0)
 
 
-LOG_MODULE_REGISTER(gpio_i2c, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(gpio_i2c, LOG_LEVEL_NONE);
 
 const struct device* gpio_dev;
 const struct device *i2c_bus0 = DEVICE_DT_GET(I2C_NODE_0);
