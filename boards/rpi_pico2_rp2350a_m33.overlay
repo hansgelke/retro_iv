@@ -49,6 +49,13 @@
         compatible = "vnd,mcp23017";
         reg = <0x21>;                     /* 7-bit slave address */
     };
+
+	i2c1_peripheral_22: i2c1_peripheral_22@22 {
+        compatible = "vnd,mcp23017";
+        reg = <0x22>;                     /* 7-bit slave address */
+    };
+
+
 };
 
 &i2c0 {
@@ -60,6 +67,11 @@
     i2c0_peripheral_20: i2c0_peripheral_20@20 {
         compatible = "vnd,mcp23017";
         reg = <0x20>;
+    };
+
+    i2c0_peripheral_22: i2c0_peripheral_20@22 {
+        compatible = "vnd,mcp23017";
+        reg = <0x22>;
     };
 
     i2c0_peripheral_21: i2c0_peripheral_21@21 {

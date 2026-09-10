@@ -10,6 +10,22 @@
 #include "slic.h"
 #include "gpio_i2c.h"
 
+note_t gb_ring[CADENCE_MAX_SEGMENTS] = {
+    {  400000, 450.0, 400.0, 0.5, true,  true,  false },
+    {  400000, 450.0, 400.0, 0.5, false, false, false },
+    {  400000, 450.0, 400.0, 0.5, true,  true,  false },
+    { 2000000, 450.0, 400.0, 0.5, false, false, true  },
+    { 0, 0.0, 0.0, 0.0, false, false, false },
+    { 0, 0.0, 0.0, 0.0, false, false, false },
+    { 0, 0.0, 0.0, 0.0, false, false, false },
+    { 0, 0.0, 0.0, 0.0, false, false, false },
+};
+
+note_t de_ring[CADENCE_MAX_SEGMENTS] = {
+    { 2000000, 450.0, 400.0, 0.5, true,  true,  false },
+    { 4000000, 450.0, 400.0, 0.5, false, false, true  },
+};
+
 LOG_MODULE_REGISTER(tone_generator, LOG_LEVEL_NONE);
 
 /* tones.c-specific mask constants not defined elsewhere              */

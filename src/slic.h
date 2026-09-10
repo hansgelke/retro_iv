@@ -5,6 +5,10 @@
 #ifndef SRC_SLIC_H
 #define SRC_SLIC_H
 
+#include "stdint.h"
+#include <zephyr/device.h>
+
+
 #define SLIC_LPSB (0x00) // Low Power Standby
 #define SLIC_FORA (0x10) // Forward active
 #define SLIC_URNG (0x20) // unballanced ringing
@@ -19,8 +23,8 @@
 #define BATHI (0x10)
 #define BATLO (0x00)
 
-#define SLIC_DIR_B (0xc0)
-#define SLIC_DIR_A (0x00)
+#define SLIC_DIR_B (0xc0) // 0 and 1 output
+#define SLIC_DIR_A (0x00) //all Outputs
 #define SLIC_DIR (0xff)
 
 #define AUX_DIR_A (0x00)
@@ -38,12 +42,12 @@
 #define SWC_N (0x20)
 #define SWC_N_MASK (0x20)
 
-#endif //SRC_SLIC_H
+
 
 int init_slic(void);
 
 int set_slic_mode(const struct device* bus,
-             uint8_t device, //Is the subscriber number
+             uint8_t dev_addr, //Is the subscriber number
              uint8_t mode);
 
 int set_slic(const struct device *bus,
@@ -53,9 +57,11 @@ int set_slic(const struct device *bus,
                     uint8_t mask);  //Is the mode to be set
 
 int set_slic_txmux(const struct device* bus,
-             uint8_t device, //Is the subscriber number
+             uint8_t dev_addr, //Is the subscriber number
              uint8_t val);
 
 int set_slic_rxmux(const struct device* bus,
-             uint8_t device, //Is the subscriber number
+             uint8_t dev_addr, //Is the subscriber number
              uint8_t val);
+
+#endif //SRC_SLIC_H

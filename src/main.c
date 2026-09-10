@@ -1,7 +1,9 @@
+#include "stdint.h"
 #include "main.h"
 #include "main_fsm.h"
 #include "tones.h"
 #include "slic.h"
+#include "bt.h"
 #include "gpio_i2c.h"
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
@@ -119,6 +121,7 @@ int main(void)
     k_sem_init(&tone3.tone_run, 0, 1);
 
     init_gpios();
+    init_bt();
     ret = init_slic();
     if (ret) LOG_ERR("init_slic failed: %d", ret);
 

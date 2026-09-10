@@ -23,6 +23,8 @@ extern const struct device *i2c_bus1;
 /* ------------------------------------------------------------------ */
 #define PERIPH_ADDR_20  DT_REG_ADDR(DT_NODELABEL(i2c0_peripheral_20))
 #define PERIPH_ADDR_21  DT_REG_ADDR(DT_NODELABEL(i2c0_peripheral_21))
+#define PERIPH_ADDR_22  DT_REG_ADDR(DT_NODELABEL(i2c0_peripheral_22))
+#define PERIPH_ADDR_23  DT_REG_ADDR(DT_NODELABEL(i2c0_peripheral_23))
 #define PERIPH_ADDR_24  DT_REG_ADDR(DT_NODELABEL(i2c0_peripheral_24))
 
 /* ------------------------------------------------------------------ */

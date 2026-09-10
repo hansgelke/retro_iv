@@ -30,26 +30,8 @@ typedef struct {
 /* ------------------------------------------------------------------ */
 #define CADENCE_MAX_SEGMENTS 8
 
-static note_t gb_ring[CADENCE_MAX_SEGMENTS] = {
-    /* duration   freq_1   freq_2   vol    tone_on  ringer_on  skip  */
-    {  400000,    450.0,   400.0,   0.5,   true,    true,      false },
-    {  400000,    450.0,   400.0,   0.5,   false,   false,     false },
-    {  400000,    450.0,   400.0,   0.5,   true,    true,      false },
-    { 2000000,    450.0,   400.0,   0.5,   false,   false,     true  },
-    /* unused slots */
-    { 0, 0.0, 0.0, 0.0, false, false, false },
-    { 0, 0.0, 0.0, 0.0, false, false, false },
-    { 0, 0.0, 0.0, 0.0, false, false, false },
-    { 0, 0.0, 0.0, 0.0, false, false, false },
-};
-
-static note_t de_ring[CADENCE_MAX_SEGMENTS] = {
-    /* duration   freq_1   freq_2   vol    tone_on  ringer_on  skip  */
-    {  2000000,    450.0,   400.0,   0.5,   true,    true,      false },
-    {  4000000,    450.0,   400.0,   0.5,   false,   false,     true },
-
-};
-
+extern note_t gb_ring[CADENCE_MAX_SEGMENTS];
+extern note_t de_ring[CADENCE_MAX_SEGMENTS];
 /* ------------------------------------------------------------------ */
 /* tone_instance_t — per-FSM tone task context                        */
 /* Each FSM instance has its own tone_instance so each phone has an   */

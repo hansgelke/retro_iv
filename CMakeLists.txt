@@ -17,6 +17,8 @@ src/tones.c
 src/tones.h
 src/main_fsm.c
 src/main_fsm.h
-        src/slic.c
-        src/slic.h
+src/slic.c
+src/slic.h
+src/bt.c
+src/bt.h
 )
